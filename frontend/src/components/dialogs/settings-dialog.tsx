@@ -2,7 +2,9 @@ import { useRef } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import {
+  Columns3Icon,
   DownloadIcon,
+  InboxIcon,
   ListFilterIcon,
   LogOutIcon,
   MonitorIcon,
@@ -199,6 +201,33 @@ function SettingsBody() {
               ))}
             </SelectContent>
           </Select>
+        </Row>
+        <Row
+          title={t("settings.layout")}
+          description={
+            prefs.layout === "hub"
+              ? t("settings.layoutHubHint")
+              : t("settings.layoutClassicHint")
+          }
+        >
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            size="sm"
+            value={prefs.layout}
+            onValueChange={(v) =>
+              v && setPrefs({ layout: v as Prefs["layout"] })
+            }
+          >
+            <ToggleGroupItem value="classic" className="px-2.5">
+              <Columns3Icon />
+              {t("settings.layoutClassic")}
+            </ToggleGroupItem>
+            <ToggleGroupItem value="hub" className="px-2.5">
+              <InboxIcon />
+              {t("settings.layoutHub")}
+            </ToggleGroupItem>
+          </ToggleGroup>
         </Row>
         <Row title={t("settings.theme")}>
           <ToggleGroup

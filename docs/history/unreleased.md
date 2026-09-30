@@ -7,6 +7,9 @@ Planned as `v0.1.0`, the first release.
 - Search within the current view.
 - Keyboard shortcuts (`J`/`K`, `M`, `S`, `V`, `R`, `/`, `Shift+A`, `?`).
 - Light and dark themes and adjustable article text size.
+- Hub layout: a message-center style stream with "For you" picks ranked by
+  freshness, feed affinity (articles read or starred), and feed rarity, and
+  updates grouped by day and source; the reader opens in a side panel.
 - Installable as an app on phones and desktops (web app manifest, home-screen
   icons), with the unread count in the page title and on the app icon.
 

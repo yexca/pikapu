@@ -30,6 +30,9 @@ port.
   unread/all filter across every view.
 - **Keyword filters.** Mark new articles as read or skip them by keyword, for
   every feed or just one.
+- **Two layouts.** A classic three-pane reader, or a hub that puts
+  recommended picks first and groups new articles by day and source, like a
+  notification center. Picks learn from which feeds you read and star.
 - **Comfortable reader.** Three panes on desktop, a single column on phones,
   light and dark themes, adjustable text size, and keyboard shortcuts.
   Install it to your home screen or desktop to use it like an app.

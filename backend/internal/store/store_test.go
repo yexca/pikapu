@@ -347,3 +347,94 @@ func TestTriageUnreadSkipsReadAndStarred(t *testing.T) {
 		t.Fatalf("other feeds must be untouched: %+v", c.Feeds)
 	}
 }
+
+func TestAffinityCountsOnlyIndividualEngagement(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+	a := newFeed(t, s, "https://feed-a.example.com/feed", nil)
+	b := newFeed(t, s, "https://feed-b.example.com/feed", nil)
+	now := time.Now().UTC()
+	s.SaveEntries(ctx, a.ID, items(3, now.Add(-10*time.Hour)), time.Time{}, nil)
+	s.SaveEntries(ctx, b.ID, items(3, now.Add(-10*time.Hour)), time.Time{}, nil)
+
+	list, _, _ := s.ListEntries(ctx, EntryFilter{FeedID: a.ID}, nil, 10)
+	yes, no := true, false
+	if err := s.UpdateEntryState(ctx, list[0].ID, &yes, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.UpdateEntryState(ctx, list[1].ID, nil, &yes); err != nil {
+		t.Fatal(err)
+	}
+	// Repeating a state or undoing it adds nothing.
+	if err := s.UpdateEntryState(ctx, list[0].ID, &yes, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.UpdateEntryState(ctx, list[1].ID, nil, &no); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.MarkAllRead(ctx, EntryFilter{FeedID: b.ID}); err != nil {
+		t.Fatal(err)
+	}
+
+	stats, err := s.FeedStats(ctx, now.Add(-24*time.Hour), time.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stats[a.ID].Affinity; got < 3.99 || got > 4 {
+		t.Errorf("feed a affinity = %v, want ~4", got)
+	}
+	if got := stats[b.ID].Affinity; got != 0 {
+		t.Errorf("feed b affinity = %v, want 0 after mark all read", got)
+	}
+	if stats[a.ID].Recent != 3 {
+		t.Errorf("feed a recent = %d, want 3", stats[a.ID].Recent)
+	}
+
+	if err := s.UpdateEntryState(ctx, 9999, &yes, nil); err != ErrNotFound {
+		t.Errorf("unknown entry: err = %v, want ErrNotFound", err)
+	}
+}
+
+func TestDecayAffinityHalves(t *testing.T) {
+	at := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	if got := decayAffinity(8, at, at.Add(AffinityHalfLife)); got < 3.999 || got > 4.001 {
+		t.Fatalf("after one half-life: %v, want 4", got)
+	}
+	if got := decayAffinity(8, at, at.Add(-time.Hour)); got != 8 {
+		t.Fatalf("clock skew: %v, want 8", got)
+	}
+}
+
+func TestRecentUnreadWindowAndScope(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+	cat, _ := s.CreateCategory(ctx, "News")
+	a := newFeed(t, s, "https://feed-a.example.com/feed", &cat.ID)
+	b := newFeed(t, s, "https://feed-b.example.com/feed", nil)
+	now := time.Now().UTC()
+	// Three recent entries and three older than the window in feed a.
+	s.SaveEntries(ctx, a.ID, items(3, now.Add(-5*time.Hour)), time.Time{}, nil)
+	old := items(3, now.Add(-30*24*time.Hour))
+	for i := range old {
+		old[i].GUID = fmt.Sprintf("old%d", i)
+	}
+	s.SaveEntries(ctx, a.ID, old, time.Time{}, nil)
+	s.SaveEntries(ctx, b.ID, items(2, now.Add(-5*time.Hour)), time.Time{}, nil)
+
+	list, _, _ := s.ListEntries(ctx, EntryFilter{FeedID: a.ID}, nil, 1)
+	yes := true
+	s.UpdateEntryState(ctx, list[0].ID, &yes, nil)
+
+	since := now.Add(-7 * 24 * time.Hour)
+	got, err := s.RecentUnread(ctx, EntryFilter{CategoryID: cat.ID}, since, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("category a: got %d entries, want 2 recent unread", len(got))
+	}
+	all, _ := s.RecentUnread(ctx, EntryFilter{}, since, 100)
+	if len(all) != 4 {
+		t.Fatalf("all feeds: got %d entries, want 4", len(all))
+	}
+}

@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   CheckCheckIcon,
+  Columns3Icon,
   InboxIcon,
   MoreHorizontalIcon,
   RefreshCwIcon,
@@ -37,6 +38,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useTick } from "@/hooks/use-debounced"
+import { useLoadMore } from "@/hooks/use-load-more"
+import { usePrefs } from "@/lib/prefs"
 import { relativeTime } from "@/lib/time"
 import type { Entry, Feed } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -78,19 +81,12 @@ export function EntryList(props: EntryListProps) {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Load the next page when the sentinel scrolls into view.
-  useEffect(() => {
-    const el = sentinelRef.current
-    if (!el || !hasNextPage) return
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting && !isFetchingNextPage) fetchNextPage()
-      },
-      { root: scrollRef.current, rootMargin: "400px" }
-    )
-    io.observe(el)
-    return () => io.disconnect()
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage, entries.length])
+  useLoadMore(sentinelRef, scrollRef, {
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    itemCount: entries.length,
+  })
 
   // Keep the selected entry visible during keyboard navigation.
   useEffect(() => {
@@ -141,7 +137,11 @@ export function EntryList(props: EntryListProps) {
   )
 }
 
-function ListHeader({
+/**
+ * Title, actions, search, and the Unread/All switch. `wide` lays them out in
+ * one row on large screens, for the hub's full-width stream.
+ */
+export function ListHeader({
   title,
   subtitle,
   feed,
@@ -153,11 +153,17 @@ function ListHeader({
   refreshing,
   onRefresh,
   onMarkAllRead,
-}: EntryListProps) {
+  wide = false,
+}: EntryListProps & { wide?: boolean }) {
   const { t } = useTranslation()
   return (
-    <header className="flex shrink-0 flex-col gap-2.5 border-b px-3 pt-2.5 pb-3">
-      <div className="flex h-9 items-center gap-1">
+    <header
+      className={cn(
+        "flex shrink-0 flex-col gap-2.5 border-b px-3 pt-2.5 pb-3",
+        wide && "bg-background sm:px-4 lg:flex-row lg:items-center lg:gap-3"
+      )}
+    >
+      <div className="flex h-9 items-center gap-1 lg:min-w-0 lg:flex-1">
         <SidebarTrigger className="-ml-0.5 text-muted-foreground" />
         <div className="min-w-0 flex-1 px-1">
           <h1 className="truncate text-[15px] leading-tight font-semibold">
@@ -205,12 +211,14 @@ function ListHeader({
             </Button>
           </FeedMenu>
         )}
+        {!wide && <LayoutSwitch />}
       </div>
       <div className="flex items-center gap-2">
         <SearchBox
           value={query}
           onChange={onQueryChange}
           inputRef={searchRef}
+          className={cn(wide && "lg:w-64 lg:flex-none")}
         />
         {onUnreadOnlyChange && (
           <ToggleGroup
@@ -229,8 +237,33 @@ function ListHeader({
             </ToggleGroupItem>
           </ToggleGroup>
         )}
+        {wide && <LayoutSwitch />}
       </div>
     </header>
+  )
+}
+
+/** Switches between the classic and hub layouts; the icon shows the target. */
+function LayoutSwitch() {
+  const { t } = useTranslation()
+  const [prefs, setPrefs] = usePrefs()
+  const hub = prefs.layout === "hub"
+  const label = hub ? t("list.switchToClassic") : t("list.switchToHub")
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          className="shrink-0"
+          onClick={() => setPrefs({ layout: hub ? "classic" : "hub" })}
+          aria-label={label}
+        >
+          {hub ? <Columns3Icon /> : <InboxIcon />}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }
 
@@ -238,10 +271,12 @@ function SearchBox({
   value,
   onChange,
   inputRef,
+  className,
 }: {
   value: string
   onChange: (v: string) => void
   inputRef: React.RefObject<HTMLInputElement | null>
+  className?: string
 }) {
   const { t } = useTranslation()
   // Local state keeps typing responsive with IME composition.
@@ -249,7 +284,7 @@ function SearchBox({
   const composing = useRef(false)
 
   return (
-    <InputGroup className="h-7 flex-1">
+    <InputGroup className={cn("h-7 flex-1", className)}>
       <InputGroupAddon>
         <SearchIcon />
       </InputGroupAddon>
@@ -396,7 +431,7 @@ function ListSkeleton() {
   )
 }
 
-function ListEmpty({
+export function ListEmpty({
   kind,
   query,
 }: {

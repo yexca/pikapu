@@ -62,9 +62,10 @@ untrusted input.
 
 - Backend: `cmd/pikapu` composes `internal/api` (HTTP), `internal/service`
   (refresh scheduling, OPML), `internal/filter` (keyword filter matching),
-  `internal/fetcher` (network, parsing, sanitizing), and `internal/store`
-  (SQLite). Dependencies point downward; `store` and `fetcher` must not
-  import `api`, `service`, or `filter`.
+  `internal/recommend` (ranking hub picks), `internal/fetcher` (network,
+  parsing, sanitizing), and `internal/store` (SQLite). Dependencies point
+  downward; `store` and `fetcher` must not import `api`, `service`, `filter`,
+  or `recommend`.
 - Frontend: components under `src/components`, generated shadcn/ui primitives
   under `src/components/ui`, data access in `src/lib` (API client, TanStack
   Query hooks), translations in `src/i18n`. Prefer adding shadcn components

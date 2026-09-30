@@ -14,12 +14,14 @@ Go module `pikapu` in `backend/`. Router: chi. Database driver:
 | `internal/service` | Adding feeds, refresh orchestration and scheduling, retention cleanup, favicon lookup, OPML import/export |
 | `internal/fetcher` | HTTP fetching, feed discovery, item conversion, HTML sanitizing, favicon discovery, error classification |
 | `internal/filter` | Keyword filter matching: compiles `store.Filter` rows into a triage function for new entries |
+| `internal/recommend` | Ranks recent unread entries for the hub layout's "For you" picks |
 | `internal/store` | SQLite access, migrations, queries |
 | `internal/opml` | OPML parsing and writing |
 | `web` | `go:embed` of the frontend build (`web/dist`) |
 
-Dependencies point downward: `api → service → filter → fetcher → store`.
-`store` and `fetcher` never import `api`, `service`, or `filter`.
+Dependencies point downward: `api → service → filter → fetcher → store`,
+and `api → recommend → store`. `store` and `fetcher` never import `api`,
+`service`, `filter`, or `recommend`.
 
 ## Refresh Pipeline
 
@@ -74,6 +76,26 @@ boundary, so CJK keywords match anywhere and `ai` matches "AI绘画".
 `POST /filters/{id}/apply` runs one filter through `store.TriageUnread` over
 unread, unstarred entries in its scope, marking or deleting them in one
 transaction.
+
+## Recommendations
+
+`GET /api/entries/recommended` ranks up to 1,000 unread entries published in
+the last 7 days (`recommend.Window`) with `recommend.Rank`, a transparent
+heuristic rather than a learned model:
+
+- **Freshness** halves every 48 hours.
+- **Affinity** is a per-feed interest score stored on the `feeds` row. Reading
+  an entry individually (`PATCH` with `is_read: true`) adds 1, starring adds
+  3, and the total halves every 30 days. Mark all as read and filters do not
+  count. The boost saturates, at most 2.5× for feeds read very often.
+- **Rarity** favors feeds that publish less: a feed posting once a week
+  outranks one posting dozens of times a day.
+- Entries with an image get a small boost.
+
+Picks are chosen greedily, and each entry already picked from a feed halves
+the score of that feed's remaining entries, so one busy feed cannot fill the
+list. Each pick carries the most notable `reason` (see
+[HTTP API](api.md#routes)).
 
 ## Feed Discovery
 

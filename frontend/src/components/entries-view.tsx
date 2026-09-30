@@ -4,11 +4,14 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 
 import { useDialogs } from "@/components/dialogs/dialogs-provider"
-import { EntryList } from "@/components/entry-list"
+import { EntryList, type EntryListProps } from "@/components/entry-list"
+import { HubView } from "@/components/hub-view"
 import { Reader } from "@/components/reader"
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import { useDebounced } from "@/hooks/use-debounced"
 import { useHotkeys } from "@/hooks/use-hotkeys"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { flattenDays, groupByDay } from "@/lib/hub"
 import { usePrefs } from "@/lib/prefs"
 import {
   findCachedEntry,
@@ -19,6 +22,7 @@ import {
   useEntry,
   useFeeds,
   useMarkAllRead,
+  usePicks,
   useRefreshAll,
   useRefreshFeed,
   useUpdateEntry,
@@ -62,13 +66,39 @@ export function EntriesView() {
     [feeds]
   )
 
+  // ---- hub layout: picks, then the rest grouped by day and feed ----
+  const hub = prefs.layout === "hub"
+  const showPicks =
+    hub &&
+    !debouncedQuery.trim() &&
+    (view.kind === "all" || view.kind === "category")
+  const picksQuery = usePicks(filter, showPicks)
+  const picks = useMemo(
+    () =>
+      showPicks ? (picksQuery.data?.pages.flatMap((p) => p.entries) ?? []) : [],
+    [showPicks, picksQuery.data]
+  )
+  const days = useMemo(() => {
+    if (!hub) return []
+    const picked = new Set(picks.map((e) => e.id))
+    return groupByDay(
+      entries.filter((e) => !picked.has(e.id)),
+      view.kind !== "feed"
+    )
+  }, [hub, picks, entries, view.kind])
+  // Entries in display order, which is what J/K and Previous/Next follow.
+  const ordered = useMemo(
+    () => (hub ? [...picks, ...flattenDays(days)] : entries),
+    [hub, picks, days, entries]
+  )
+
   const selectedId = Number(params.get("entry")) || null
-  const index = entries.findIndex((e) => e.id === selectedId)
+  const index = ordered.findIndex((e) => e.id === selectedId)
   // Fall back to the detail query when the entry isn't in the current list,
   // e.g. after a reload of a now-read entry in the unread view.
   const detail = useEntry(index < 0 ? selectedId : null)
   const selected: Entry | null =
-    index >= 0 ? entries[index] : (detail.data ?? null)
+    index >= 0 ? ordered[index] : (detail.data ?? null)
 
   // ---- header text ----
   const currentFeed = view.kind === "feed" ? feedsById.get(view.id) : undefined
@@ -125,11 +155,11 @@ export function EntriesView() {
 
   const { hasNextPage, isFetchingNextPage, fetchNextPage } = entriesQuery
   const move = (delta: number) => {
-    if (entries.length === 0) return
-    const current = entries.findIndex((e) => e.id === selectedRef.current)
+    if (ordered.length === 0) return
+    const current = ordered.findIndex((e) => e.id === selectedRef.current)
     const next = current < 0 ? (delta > 0 ? 0 : -1) : current + delta
-    if (next >= 0 && next < entries.length) select(entries[next])
-    if (next >= entries.length - 5 && hasNextPage && !isFetchingNextPage) {
+    if (next >= 0 && next < ordered.length) select(ordered[next])
+    if (next >= ordered.length - 5 && hasNextPage && !isFetchingNextPage) {
       fetchNextPage()
     }
   }
@@ -147,10 +177,10 @@ export function EntriesView() {
   }, [selected?.id])
 
   useEffect(() => {
-    if (index >= 0 && index + 1 < entries.length) {
-      prefetchEntry(qc, entries[index + 1].id)
+    if (index >= 0 && index + 1 < ordered.length) {
+      prefetchEntry(qc, ordered[index + 1].id)
     }
-  }, [index, entries, qc])
+  }, [index, ordered, qc])
 
   // ---- actions ----
   const current = () =>
@@ -214,6 +244,49 @@ export function EntriesView() {
         ? "unread"
         : "none"
 
+  const listProps: EntryListProps = {
+    title,
+    subtitle,
+    feed: currentFeed,
+    entries: hub ? flattenDays(days) : entries,
+    feedsById,
+    selectedId,
+    onSelect: (e) => select(e, true),
+    query,
+    onQueryChange: setQuery,
+    searchRef,
+    unreadOnly: prefs.unreadOnly,
+    onUnreadOnlyChange:
+      view.kind === "starred" ? undefined : (v) => setPrefs({ unreadOnly: v }),
+    refreshing,
+    onRefresh: refresh,
+    onMarkAllRead,
+    isLoading: entriesQuery.isPending || (showPicks && picksQuery.isPending),
+    hasNextPage: !!hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+    showFeed: view.kind !== "feed",
+    emptyKind,
+  }
+  const readerProps = {
+    feed: selected ? feedsById.get(selected.feed_id) : undefined,
+    onClose: close,
+    onPrev: index > 0 ? () => move(-1) : undefined,
+    onNext:
+      index >= 0 && index + 1 < ordered.length ? () => move(1) : undefined,
+    onToggleRead: toggleRead,
+    onToggleStar: toggleStar,
+  }
+
+  if (hub) {
+    return (
+      <>
+        <HubView {...listProps} picks={picks} days={days} />
+        <ReaderSheet entry={selected} {...readerProps} />
+      </>
+    )
+  }
+
   return (
     <div className="flex h-full min-h-0 w-full">
       <section
@@ -222,33 +295,7 @@ export function EntriesView() {
           selected && "max-lg:hidden"
         )}
       >
-        <EntryList
-          title={title}
-          subtitle={subtitle}
-          feed={currentFeed}
-          entries={entries}
-          feedsById={feedsById}
-          selectedId={selectedId}
-          onSelect={(e) => select(e, true)}
-          query={query}
-          onQueryChange={setQuery}
-          searchRef={searchRef}
-          unreadOnly={prefs.unreadOnly}
-          onUnreadOnlyChange={
-            view.kind === "starred"
-              ? undefined
-              : (v) => setPrefs({ unreadOnly: v })
-          }
-          refreshing={refreshing}
-          onRefresh={refresh}
-          onMarkAllRead={onMarkAllRead}
-          isLoading={entriesQuery.isPending}
-          hasNextPage={!!hasNextPage}
-          isFetchingNextPage={isFetchingNextPage}
-          fetchNextPage={fetchNextPage}
-          showFeed={view.kind !== "feed"}
-          emptyKind={emptyKind}
-        />
+        <EntryList {...listProps} />
       </section>
       <section
         className={cn(
@@ -256,18 +303,52 @@ export function EntriesView() {
           !selected && "max-lg:hidden"
         )}
       >
-        <Reader
-          entry={selected}
-          feed={selected ? feedsById.get(selected.feed_id) : undefined}
-          onClose={close}
-          onPrev={index > 0 ? () => move(-1) : undefined}
-          onNext={
-            index >= 0 && index + 1 < entries.length ? () => move(1) : undefined
-          }
-          onToggleRead={toggleRead}
-          onToggleStar={toggleStar}
-        />
+        <Reader entry={selected} {...readerProps} />
       </section>
     </div>
+  )
+}
+
+/**
+ * The hub's reader: a sheet over the stream (full screen on phones). It
+ * keeps showing the last article while it animates closed, and lets the
+ * reading shortcuts through.
+ */
+function ReaderSheet({
+  entry,
+  feed,
+  ...props
+}: React.ComponentProps<typeof Reader>) {
+  const [shown, setShown] = useState({ entry, feed })
+  if (entry && (entry !== shown.entry || feed !== shown.feed)) {
+    setShown({ entry, feed })
+  }
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  return (
+    <Sheet open={!!entry} onOpenChange={(open) => !open && props.onClose()}>
+      <SheetContent
+        ref={contentRef}
+        side="right"
+        showCloseButton={false}
+        data-allow-hotkeys
+        aria-describedby={undefined}
+        // Focusing the first toolbar button would pop its tooltip.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault()
+          contentRef.current?.focus()
+        }}
+        onCloseAutoFocus={(e) => e.preventDefault()}
+        // Close through onClose only once; the Escape hotkey must not repeat it.
+        onEscapeKeyDown={(e) => {
+          e.preventDefault()
+          props.onClose()
+        }}
+        className="gap-0 p-0 outline-none data-[side=right]:w-full data-[side=right]:sm:max-w-2xl xl:data-[side=right]:max-w-3xl"
+      >
+        <SheetTitle className="sr-only">{shown.entry?.title}</SheetTitle>
+        <Reader {...shown} {...props} inSheet />
+      </SheetContent>
+    </Sheet>
   )
 }

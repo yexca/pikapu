@@ -48,6 +48,7 @@ host toolchain do not replace the Docker targets.
 - OPML import, the background fetch of a `.invalid` feed failing with a
   `fetch_*` code, and OPML export
 - filter validation codes, creation, applying, and deletion
+- recommendations behind the auth boundary
 - sign-out
 
 It needs no outbound network access, and it prints the container logs when a

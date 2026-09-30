@@ -23,6 +23,9 @@ to read them.
   unread/all filter.
 - Keyword filters that mark new articles as read or skip them, for all feeds
   or one feed.
+- Two layouts: classic three panes, or a hub with recommended picks (ranked
+  by freshness, how often you read or star a feed, and how rarely it
+  publishes) and updates grouped by day and source.
 - Background refresh with conditional requests, per-feed backoff after
   failures, and localized failure reasons in the UI.
 - Retention cleanup of old read articles (starred and unread articles are

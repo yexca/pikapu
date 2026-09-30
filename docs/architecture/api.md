@@ -26,6 +26,7 @@ strings. When a password is configured, every route except `healthz` and
 | `POST /feeds/{id}/refresh` | Refresh now; returns the feed (check `last_error_code`) |
 | `GET /feeds/{id}/icon` | Favicon bytes, or 404 |
 | `GET /entries` | Query: `feed_id`, `category_id`, `starred=1`, `unread=1`, `q`, `cursor`, `limit` (≤ 200) → `{"entries", "next_cursor"}`; list items omit `content` |
+| `GET /entries/recommended` | Query: `feed_id`, `category_id`, `limit` (≤ 50, default 10) → `{"entries"}`, ranked unread entries from the last 7 days, each with an optional `reason` |
 | `GET /entries/{id}` | Entry with sanitized `content` |
 | `PATCH /entries/{id}` | `{"is_read"?, "is_starred"?}` |
 | `POST /entries/mark-all-read` | `{"feed_id"?, "category_id"?, "starred"?, "q"?}` → `{"updated"}` |
@@ -41,6 +42,12 @@ strings. When a password is configured, every route except `healthz` and
 
 `category_name` creates the category if needed and takes precedence over
 `category_id`.
+
+A recommended entry's `reason` is a stable code the client localizes:
+`favorite_source` (a feed the reader often reads or stars), `rare_source` (a
+feed with three or fewer articles in the last week), or `fresh` (published
+within three hours). It is omitted when nothing stands out. Ranking is
+described in [Backend](backend.md#recommendations).
 
 A filter's `feed_id` is `null` (or omitted) for all feeds. `action` is
 `mark_read` or `skip`; `invert: true` applies it when none of the keywords

@@ -116,6 +116,17 @@ export const api = {
     if (cursor) params.set("cursor", cursor)
     return request<EntryPage>("GET", `/entries?${params}`)
   },
+  /** Recommended unread entries, shaped as a single final page. */
+  recommended: async (
+    scope: Pick<EntryFilter, "feedId" | "categoryId">
+  ): Promise<EntryPage> => {
+    const params = new URLSearchParams(filterParams(scope))
+    const res = await request<{ entries: Entry[] }>(
+      "GET",
+      `/entries/recommended?${params}`
+    )
+    return { entries: res.entries, next_cursor: null }
+  },
   entry: (id: number) => request<Entry>("GET", `/entries/${id}`),
   updateEntry: (
     id: number,

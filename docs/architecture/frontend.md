@@ -10,14 +10,16 @@ Query, React Router, and i18next. Source in `frontend/src`.
 | `main.tsx` | Providers: theme, locale sync, query client, tooltips, router, toasts |
 | `App.tsx` | Auth gate, app shell (sidebar + routes), refresh watcher |
 | `components/app-sidebar.tsx` | Navigation, categories, feeds, footer actions |
-| `components/entries-view.tsx` | Orchestrates the list and the reader for the current view: selection, keyboard shortcuts, auto mark-as-read |
-| `components/entry-list.tsx` | List header, search, infinite scroll, empty states |
+| `components/entries-view.tsx` | Orchestrates the list and the reader for the current view in either layout: selection, keyboard shortcuts, auto mark-as-read |
+| `components/entry-list.tsx` | Classic list; the list header, search, and empty states shared with the hub |
+| `components/hub-view.tsx` | Hub layout stream: "For you" picks and updates grouped by day and feed |
 | `components/reader.tsx` | Article toolbar and rendering |
 | `components/dialogs/` | Add/edit feed, category, filters, settings, shortcuts, confirm dialogs, exposed through `useDialogs()` |
 | `components/ui/` | Generated shadcn/ui primitives |
 | `lib/api.ts` | Typed API client and `ApiError` (status, code, message) |
 | `lib/queries.ts` | TanStack Query hooks, optimistic updates, cache keys |
 | `lib/view.ts` | URL ↔ view mapping and entry filters |
+| `lib/hub.ts` | Groups the hub stream by day and feed |
 | `lib/prefs.ts` | `localStorage`-backed preferences store |
 | `lib/time.ts` | Locale-aware relative and absolute dates |
 | `i18n/` | i18next setup, locale catalogs, error localization |
@@ -40,6 +42,10 @@ system back gesture returns to the list.
 ## Data and Caching
 
 - Entry lists use cursor-based infinite queries keyed by the filter object.
+- Hub picks (`usePicks`) are cached under the same `entries` key prefix and
+  in the same page shape, so read/star updates, lookups, and refresh
+  invalidation cover them too. They are ranked once per load and do not
+  reshuffle while reading.
 - Toggling read or star updates every cached copy of the entry and the
   counters optimistically, and rolls back on error.
 - Read entries stay visible in the unread view until the list is refetched;
@@ -50,9 +56,28 @@ system back gesture returns to the list.
 
 ## Layout
 
+The **Layout** preference (`prefs.layout`, per browser) chooses between two
+presentations of the same view, selection, and shortcuts.
+
+Classic (default):
+
 - ≥ 1024 px: sidebar, list (22–26 rem), and reader side by side.
 - < 1024 px: list or reader, one at a time.
 - < 768 px: the sidebar becomes a drawer.
+
+Hub, a message-center style stream:
+
+- A centered column (max 48 rem). In All articles and category views, not
+  while searching, "For you" shows recommended picks first: a hero card, up
+  to four cards, then a compact list.
+- "Latest updates" groups the remaining entries by local day and, except in
+  single-feed views, by feed, like notifications grouped by app. Stacks show
+  three entries and expand on demand or when keyboard navigation reaches a
+  hidden entry.
+- The reader opens in a right-hand sheet (full screen below 640 px). J/K
+  follow display order: picks, then the stream. The sheet carries
+  `data-allow-hotkeys` so `useHotkeys` keeps reading shortcuts active inside
+  it; other dialogs still suspend them.
 
 ## Internationalization
 

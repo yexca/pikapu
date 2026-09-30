@@ -53,3 +53,20 @@ export function fullTime(iso: string): string {
     minute: "2-digit",
   }).format(new Date(iso))
 }
+
+/** "Today", "Yesterday", or a date, for grouping a list by local day. */
+export function dayLabel(date: Date): string {
+  const start = (d: Date) =>
+    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  // Rounding absorbs daylight-saving days that are 23 or 25 hours long.
+  const days = Math.round((start(new Date()) - start(date)) / 86_400_000)
+  if (days <= 0) return i18n.t("hub.today")
+  if (days === 1) return i18n.t("hub.yesterday")
+  const sameYear = date.getFullYear() === new Date().getFullYear()
+  return dateFormat(intlLocale(), {
+    weekday: days < 7 ? "long" : undefined,
+    month: "long",
+    day: "numeric",
+    year: sameYear ? undefined : "numeric",
+  }).format(date)
+}

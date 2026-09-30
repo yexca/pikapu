@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -245,7 +246,27 @@ func (s *Store) GetEntry(ctx context.Context, id int64) (*Entry, error) {
 	return e, err
 }
 
+// Interest added to a feed's affinity when one of its entries is read or
+// starred individually. Bulk actions (mark all as read, filters) do not count.
+const (
+	readAffinity = 1.0
+	starAffinity = 3.0
+
+	// AffinityHalfLife is how long past interest in a feed takes to count half.
+	AffinityHalfLife = 30 * 24 * time.Hour
+)
+
+// decayAffinity returns v, recorded at at, as it counts at now.
+func decayAffinity(v float64, at, now time.Time) float64 {
+	age := now.Sub(at)
+	if v == 0 || age <= 0 {
+		return v
+	}
+	return v * math.Exp2(-age.Hours()/AffinityHalfLife.Hours())
+}
+
 // UpdateEntryState sets the read and/or starred flags; nil leaves a flag as is.
+// Marking an entry read or starred also raises its feed's affinity.
 func (s *Store) UpdateEntryState(ctx context.Context, id int64, read, starred *bool) error {
 	sets := []string{}
 	args := []any{}
@@ -260,13 +281,117 @@ func (s *Store) UpdateEntryState(ctx context.Context, id int64, read, starred *b
 	if len(sets) == 0 {
 		return nil
 	}
-	args = append(args, id)
-	res, err := s.db.ExecContext(ctx,
-		`UPDATE entries SET `+strings.Join(sets, ", ")+` WHERE id = ?`, args...)
+
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	return requireRow(res)
+	defer tx.Rollback()
+
+	var (
+		feedID              int64
+		wasRead, wasStarred bool
+	)
+	err = tx.QueryRowContext(ctx, `SELECT feed_id, is_read, is_starred FROM entries WHERE id = ?`, id).
+		Scan(&feedID, &wasRead, &wasStarred)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+
+	args = append(args, id)
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE entries SET `+strings.Join(sets, ", ")+` WHERE id = ?`, args...); err != nil {
+		return err
+	}
+
+	bump := 0.0
+	if read != nil && *read && !wasRead {
+		bump += readAffinity
+	}
+	if starred != nil && *starred && !wasStarred {
+		bump += starAffinity
+	}
+	if bump > 0 {
+		var (
+			affinity float64
+			at       int64
+		)
+		if err := tx.QueryRowContext(ctx, `SELECT affinity, affinity_at FROM feeds WHERE id = ?`, feedID).
+			Scan(&affinity, &at); err != nil {
+			return err
+		}
+		now := time.Now()
+		affinity = decayAffinity(affinity, fromUnix(at), now) + bump
+		if _, err := tx.ExecContext(ctx, `UPDATE feeds SET affinity = ?, affinity_at = ? WHERE id = ?`,
+			affinity, unix(now), feedID); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
+}
+
+// RecentUnread returns up to limit unread entries matching f that were
+// published at or after since, newest first.
+func (s *Store) RecentUnread(ctx context.Context, f EntryFilter, since time.Time, limit int) ([]*Entry, error) {
+	f.Unread = true
+	where, args := f.where()
+	args = append(args, unix(since), limit)
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT `+entryListColumns+` FROM entries WHERE `+where+
+			` AND published_at >= ? ORDER BY published_at DESC, id DESC LIMIT ?`, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := []*Entry{}
+	for rows.Next() {
+		e, err := scanEntry(rows, false)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
+// FeedStat is what recommendations know about a feed.
+type FeedStat struct {
+	// Affinity is the decayed interest in the feed at the time of the query.
+	Affinity float64
+	// Recent counts the feed's entries published since the query's window start.
+	Recent int
+}
+
+// FeedStats returns a FeedStat for every feed, counting entries published at
+// or after since and decaying affinity to now.
+func (s *Store) FeedStats(ctx context.Context, since, now time.Time) (map[int64]FeedStat, error) {
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT f.id, f.affinity, f.affinity_at,
+			(SELECT COUNT(*) FROM entries e WHERE e.feed_id = f.id AND e.published_at >= ?)
+		 FROM feeds f`, unix(since))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := map[int64]FeedStat{}
+	for rows.Next() {
+		var (
+			id       int64
+			affinity float64
+			at       int64
+			recent   int
+		)
+		if err := rows.Scan(&id, &affinity, &at, &recent); err != nil {
+			return nil, err
+		}
+		out[id] = FeedStat{Affinity: decayAffinity(affinity, fromUnix(at), now), Recent: recent}
+	}
+	return out, rows.Err()
 }
 
 // MarkAllRead marks every unread entry matching the filter as read.

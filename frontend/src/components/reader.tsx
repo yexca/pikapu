@@ -11,6 +11,7 @@ import {
   ExternalLinkIcon,
   Link2Icon,
   StarIcon,
+  XIcon,
 } from "lucide-react"
 
 import { FeedIcon } from "@/components/feed-icon"
@@ -44,6 +45,8 @@ interface ReaderProps {
   onNext?: () => void
   onToggleRead: () => void
   onToggleStar: () => void
+  /** Shown in the hub's side sheet rather than as a pane. */
+  inSheet?: boolean
 }
 
 function ToolbarButton({
@@ -86,6 +89,7 @@ export function Reader({
   onNext,
   onToggleRead,
   onToggleStar,
+  inSheet = false,
 }: ReaderProps) {
   const { t } = useTranslation()
   const detail = useEntry(entry?.id ?? null)
@@ -109,7 +113,7 @@ export function Reader({
         <ToolbarButton
           label={t("reader.back")}
           onClick={onClose}
-          className="lg:hidden"
+          className={inSheet ? "sm:hidden" : "lg:hidden"}
         >
           <ArrowLeftIcon />
         </ToolbarButton>
@@ -172,6 +176,15 @@ export function Reader({
                 <TooltipContent>{t("reader.openOriginal")}</TooltipContent>
               </Tooltip>
             </>
+          )}
+          {inSheet && (
+            <ToolbarButton
+              label={t("reader.close")}
+              onClick={onClose}
+              className="max-sm:hidden"
+            >
+              <XIcon />
+            </ToolbarButton>
           )}
         </div>
       </div>

@@ -2,7 +2,13 @@
 
 ## Layout
 
-On wide screens Pikapu shows three panes:
+Pikapu has two layouts; choose one in **Settings → Layout**, or switch with
+the layout button at the right end of the list header. The choice is
+remembered in this browser.
+
+### Classic
+
+On wide screens the classic layout shows three panes:
 
 | Pane | Contents |
 | --- | --- |
@@ -13,6 +19,25 @@ On wide screens Pikapu shows three panes:
 Below 1024 px the list and the reader share one column: selecting an article
 opens the reader, and **Back** returns to the list. Below 768 px the sidebar
 becomes a drawer opened with the sidebar button.
+
+### Hub
+
+The hub works like a message center: one centered stream of cards.
+
+- **For you** (All articles and categories) picks up to ten unread articles
+  from the last week. Picks favor recent articles, feeds you often read or
+  star, and feeds that rarely publish, and no single feed can take every
+  slot. A label says why an article was picked: *You read this often*,
+  *Rare update*, or *Just in*. Picks stay in place while you read and are
+  chosen again when you refresh or come back to the view.
+- **Latest updates** lists everything else by day. Within a day, each feed's
+  articles are stacked in one card with a count of new ones; long stacks
+  show three articles and a **Show more** button.
+- Selecting an article opens the reader in a panel over the stream (full
+  screen on phones). Close it with ✕, `Esc`, or Back.
+
+Search, the Unread/All switch, and keyboard shortcuts work the same in both
+layouts. While searching, the hub shows only results, without picks.
 
 ## Views and Filters
 
@@ -57,4 +82,6 @@ asks for confirmation except in single-feed views.
 | `Ctrl` + `B` | Show or hide the sidebar |
 | `?` | Show all shortcuts |
 
-Shortcuts are ignored while typing in a field or when a dialog is open.
+Shortcuts are ignored while typing in a field or when a dialog is open (the
+hub's reader panel is not a dialog for this purpose). In the hub, `J` / `K`
+go through the picks first, then the stream.

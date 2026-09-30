@@ -32,6 +32,9 @@ export const keys = {
   filters: ["filters"] as const,
   entryLists: ["entries"] as const,
   entries: (f: EntryFilter) => ["entries", f] as const,
+  // Under the "entries" prefix and in the same shape as a list, so read and
+  // star updates, lookups, and invalidations cover picks too.
+  picks: (scope: EntryFilter) => ["entries", "picks", scope] as const,
   entry: (id: number) => ["entry", id] as const,
 }
 
@@ -66,6 +69,25 @@ export function useEntries(filter: EntryFilter) {
   })
 }
 
+/** Canonical picks scope, so keys built from a view and a filter match. */
+export function pickScope({ feedId, categoryId }: EntryFilter): EntryFilter {
+  if (categoryId) return { categoryId }
+  if (feedId) return { feedId }
+  return {}
+}
+
+/** Recommended entries for a view; ranked once per load so they stay put. */
+export function usePicks(filter: EntryFilter, enabled: boolean) {
+  const scope = pickScope(filter)
+  return useInfiniteQuery({
+    queryKey: keys.picks(scope),
+    queryFn: () => api.recommended(scope),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.next_cursor,
+    enabled,
+  })
+}
+
 export function useEntry(id: number | null) {
   return useQuery({
     queryKey: keys.entry(id ?? 0),
@@ -88,10 +110,10 @@ type EntryPatch = Partial<Pick<Entry, "is_read" | "is_starred">>
 function patchEntryLists(
   qc: QueryClient,
   fn: (e: Entry) => Entry,
-  filter?: EntryFilter
+  queryKey: readonly unknown[] = keys.entryLists
 ) {
   qc.setQueriesData<InfiniteData<EntryPage>>(
-    { queryKey: filter ? keys.entries(filter) : keys.entryLists },
+    { queryKey },
     (data) =>
       data && {
         ...data,
@@ -171,7 +193,11 @@ export function useMarkAllRead() {
     mutationFn: (filter: EntryFilter) => api.markAllRead(filter),
     onSuccess: (res, filter) => {
       // Keep the visible list in place, just dimmed; other lists refetch later.
-      patchEntryLists(qc, (e) => ({ ...e, is_read: true }), filter)
+      const read = (e: Entry) => ({ ...e, is_read: true })
+      patchEntryLists(qc, read, keys.entries(filter))
+      if (!filter.q && !filter.starred) {
+        patchEntryLists(qc, read, keys.picks(pickScope(filter)))
+      }
       qc.invalidateQueries({ queryKey: keys.entryLists, refetchType: "none" })
       qc.invalidateQueries({ queryKey: ["entry"], refetchType: "none" })
       qc.invalidateQueries({ queryKey: keys.counters })

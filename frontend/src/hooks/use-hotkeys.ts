@@ -5,7 +5,7 @@ type Handlers = Record<string, () => void>
 /**
  * Binds single-key shortcuts (matched on KeyboardEvent.key). Keys are ignored
  * while typing in a field, with modifier keys held, or when a dialog or menu
- * is open.
+ * is open, except dialogs marked `data-allow-hotkeys` (the hub's reader).
  */
 export function useHotkeys(handlers: Handlers) {
   const ref = useRef(handlers)
@@ -25,7 +25,7 @@ export function useHotkeys(handlers: Handlers) {
       }
       if (
         document.querySelector(
-          '[role="dialog"], [role="alertdialog"], [role="menu"]'
+          '[role="dialog"]:not([data-allow-hotkeys]), [role="alertdialog"], [role="menu"]'
         )
       ) {
         return

@@ -111,6 +111,11 @@ var migrations = []string{
 	);
 	CREATE INDEX idx_filters_feed ON filters(feed_id);
 	`,
+	// 4: decayed per-feed interest used to rank recommended entries.
+	`
+	ALTER TABLE feeds ADD COLUMN affinity REAL NOT NULL DEFAULT 0;
+	ALTER TABLE feeds ADD COLUMN affinity_at INTEGER NOT NULL DEFAULT 0;
+	`,
 }
 
 func (s *Store) migrate(ctx context.Context) error {

@@ -8,6 +8,8 @@ export interface Prefs {
   unreadOnly: boolean
   autoMarkRead: boolean
   fontSize: "sm" | "base" | "lg"
+  /** Classic three panes, or the hub: picks first, updates grouped by source. */
+  layout: "classic" | "hub"
   /** Category ids whose feed list is collapsed in the sidebar. */
   collapsed: number[]
 }
@@ -19,6 +21,7 @@ const defaults: Prefs = {
   unreadOnly: true,
   autoMarkRead: true,
   fontSize: "base",
+  layout: "classic",
   collapsed: [],
 }
 

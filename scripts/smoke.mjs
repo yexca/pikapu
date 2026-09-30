@@ -148,6 +148,15 @@ async function run() {
     JSON.stringify(feed)
   )
 
+  const picks = await call("GET", "/api/entries/recommended?limit=5")
+  check(
+    "recommendations return an entry list",
+    picks.status === 200 && Array.isArray(picks.json?.entries),
+    picks.text
+  )
+  const anonPicks = await call("GET", "/api/entries/recommended", { auth: false })
+  check("recommendations require sign-in", anonPicks.status === 401)
+
   const exported = await call("GET", "/api/opml")
   check(
     "OPML export contains the subscription",

@@ -28,6 +28,7 @@ Timestamps are Unix seconds (UTC).
 | `last_fetched_at` | Last attempt, successful or not |
 | `last_error`, `last_error_code`, `error_count` | Failure detail (English), stable code, consecutive failures |
 | `icon`, `icon_mime`, `icon_checked_at` | Cached favicon |
+| `affinity`, `affinity_at` | Interest score for recommendations and when it was last raised; decays with a 30-day half-life |
 | `created_at` | |
 
 ### `entries`
@@ -79,6 +80,7 @@ transaction on startup.
 | 1 | Initial schema |
 | 2 | `feeds.last_error_code` |
 | 3 | `filters` table |
+| 4 | `feeds.affinity`, `feeds.affinity_at` |
 
 Released migrations are immutable. Add a schema change as the next entry;
 never edit or reorder existing ones.

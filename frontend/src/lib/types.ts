@@ -31,7 +31,12 @@ export interface Entry {
   published_at: string
   is_read: boolean
   is_starred: boolean
+  /** Why a recommended entry was picked; only set on picks. */
+  reason?: PickReason
 }
+
+/** Stable reason codes from GET /entries/recommended. */
+export type PickReason = "favorite_source" | "rare_source" | "fresh"
 
 export interface EntryPage {
   entries: Entry[]

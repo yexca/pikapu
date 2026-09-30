@@ -9,6 +9,7 @@ the whole instance.
 | Setting | Scope | Options |
 | --- | --- | --- |
 | Language | browser | System default, English, 简体中文 |
+| Layout | browser | Classic, Hub; see [Reading](reading.md#layout) |
 | Theme | browser | Light, Dark, System |
 | Article text size | browser | Small, Medium, Large |
 

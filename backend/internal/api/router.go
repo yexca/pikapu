@@ -66,6 +66,7 @@ func New(ctx context.Context, st *store.Store, svc *service.Service, password st
 			r.Get("/feeds/{id}/icon", h.feedIcon)
 
 			r.Get("/entries", h.listEntries)
+			r.Get("/entries/recommended", h.recommendedEntries)
 			r.Post("/entries/mark-all-read", h.markAllRead)
 			r.Get("/entries/{id}", h.getEntry)
 			r.Patch("/entries/{id}", h.updateEntry)

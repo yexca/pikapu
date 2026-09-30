@@ -12,6 +12,7 @@ import (
 	"pikapu/internal/fetcher"
 	"pikapu/internal/filter"
 	"pikapu/internal/opml"
+	"pikapu/internal/recommend"
 	"pikapu/internal/service"
 	"pikapu/internal/store"
 )
@@ -370,6 +371,32 @@ func (h *handler) listEntries(w http.ResponseWriter, r *http.Request) {
 		resp["next_cursor"] = next.String()
 	}
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// maxCandidates bounds how many recent unread entries are scored per request.
+const maxCandidates = 1000
+
+func (h *handler) recommendedEntries(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	scope := parseFilter(q.Get)
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	if limit <= 0 || limit > 50 {
+		limit = 10
+	}
+	now := time.Now()
+	since := now.Add(-recommend.Window)
+	candidates, err := h.store.RecentUnread(r.Context(),
+		store.EntryFilter{FeedID: scope.FeedID, CategoryID: scope.CategoryID}, since, maxCandidates)
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	stats, err := h.store.FeedStats(r.Context(), since, now)
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"entries": recommend.Rank(candidates, stats, now, limit)})
 }
 
 func (h *handler) getEntry(w http.ResponseWriter, r *http.Request) {
