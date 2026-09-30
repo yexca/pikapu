@@ -30,6 +30,10 @@ are never modified. Remove the named volumes with
 | Dockerfile, Compose, API contract, auth, startup | `make smoke` |
 | Anything, before handoff | `make test` |
 
+CI runs `make test-backend`, `make test-frontend`, and `make smoke` as
+separate jobs on every pull request and push to `main`; see
+[Commit and release](commit-and-release.md#continuous-integration).
+
 Local targets (`make backend-test`, `make backend-vet`, `make frontend-lint`,
 `make frontend-format`) are useful for quick feedback, but results from the
 host toolchain do not replace the Docker targets.

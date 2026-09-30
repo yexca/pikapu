@@ -53,4 +53,7 @@ Planned as `v0.1.0`, the first release.
 - Docker-based validation: `make test-backend`, `make test-frontend`,
   `make smoke`, `make test`.
 - `VERSION` as the single version source.
+- GitHub Actions CI runs the containerized backend, frontend, and smoke
+  checks; tagged releases publish the image to Docker Hub and the GitHub
+  Container Registry and create a GitHub release.
 - API errors use `{error, code}` with stable codes.

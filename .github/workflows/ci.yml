@@ -1,0 +1,74 @@
+name: CI
+
+# Every job calls the same Makefile targets as local validation, so CI runs
+# the checks inside the same pinned containers (see docs/development/testing.md).
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Format, vet and race-enabled tests
+        run: make test-backend
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Format, lint, typecheck and build
+        run: make test-frontend
+
+  smoke:
+    name: Smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+      - name: Cache production image layers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/pikapu-buildx-cache
+          key: docker-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Dockerfile', '.dockerignore', 'VERSION', 'backend/**', 'frontend/**') }}
+          restore-keys: docker-${{ runner.os }}-${{ runner.arch }}-
+      - name: Build and smoke test the production image
+        run: >-
+          make DOCKER_IMAGE=pikapu:ci DOCKER_BUILD="docker buildx build"
+          DOCKER_BUILD_ARGS="--load --cache-from type=local,src=$RUNNER_TEMP/pikapu-buildx-cache --cache-to type=local,dest=$RUNNER_TEMP/pikapu-buildx-cache-next,mode=max"
+          smoke
+      - name: Replace exported layer cache
+        run: |
+          rm -rf -- "$RUNNER_TEMP/pikapu-buildx-cache"
+          mv -- "$RUNNER_TEMP/pikapu-buildx-cache-next" "$RUNNER_TEMP/pikapu-buildx-cache"

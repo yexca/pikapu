@@ -22,6 +22,27 @@ Open the app and enter the setup token to create the admin account, or set
 `make docker-up`, `make docker-down`, `make docker-status`, and
 `make docker-logs` wrap the same Compose commands.
 
+## Prebuilt Images
+
+Each release publishes the image to Docker Hub and the GitHub Container
+Registry:
+
+- `yexca/pikapu`
+- `ghcr.io/yexca/pikapu`
+
+Tags are the version without the `v` prefix (`0.1.0`), the minor line
+(`0.1`), and `latest`. To run a published image instead of building
+locally, set `PIKAPU_IMAGE` in `.env` and start without `--build`:
+
+```sh
+PIKAPU_IMAGE=yexca/pikapu:0.1
+```
+
+```sh
+docker compose pull
+docker compose up -d
+```
+
 ## Configure with `.env`
 
 Copy [`.env.example`](../../.env.example) to `.env` beside
@@ -30,7 +51,7 @@ automatically; exported shell variables take precedence.
 
 | Variable | Compose default | Purpose |
 | --- | --- | --- |
-| `PIKAPU_IMAGE` | `pikapu:latest` | Tag for the locally built image |
+| `PIKAPU_IMAGE` | `pikapu:latest` | Tag for the locally built image, or a published image to pull |
 | `PIKAPU_PORT` | `7660` | Host port mapped to the container's port 7660 |
 | `PIKAPU_MODE` | `production` | `development` turns sign-in off; local use only |
 | `PIKAPU_ADMIN_USERNAME` | `admin` | Username for the bootstrap account |

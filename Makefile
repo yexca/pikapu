@@ -6,6 +6,8 @@ GO ?= go
 NPM ?= npm
 NODE ?= node
 DOCKER ?= docker
+DOCKER_BUILD ?= $(DOCKER) build
+DOCKER_BUILD_ARGS ?=
 DOCKER_IMAGE ?= pikapu:dev
 GO_IMAGE ?= golang:1.26
 NODE_IMAGE ?= node:24-alpine
@@ -118,7 +120,7 @@ icons: ## Render the app icons in frontend/public from docs/assets (container; n
 
 .PHONY: docker-build docker-up docker-down docker-status docker-logs
 docker-build: ## Build the production image as $(DOCKER_IMAGE)
-	$(DOCKER) build -t $(DOCKER_IMAGE) .
+	$(DOCKER_BUILD) $(DOCKER_BUILD_ARGS) -t $(DOCKER_IMAGE) .
 
 docker-up: ## Build and start the Compose stack on port 7660
 	$(DOCKER) compose up -d --build
