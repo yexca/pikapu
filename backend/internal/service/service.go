@@ -16,6 +16,7 @@ import (
 	"golang.org/x/sync/singleflight"
 
 	"pikapu/internal/fetcher"
+	"pikapu/internal/filter"
 	"pikapu/internal/opml"
 	"pikapu/internal/store"
 )
@@ -117,8 +118,16 @@ func (s *Service) save(ctx context.Context, feed *store.Feed, res *fetcher.FeedR
 			skipBefore = time.Now().AddDate(0, 0, -settings.RetentionDays)
 		}
 	}
+	filters, err := s.store.FiltersForFeed(ctx, feed.ID)
+	if err != nil {
+		return fmt.Errorf("load filters: %w", err)
+	}
+	var triage store.Triage
+	if set := filter.Compile(filters); !set.Empty() {
+		triage = set.Triage
+	}
 	items := fetcher.ConvertItems(res.Feed, feed.FeedURL)
-	added, err := s.store.SaveEntries(ctx, feed.ID, items, skipBefore)
+	added, err := s.store.SaveEntries(ctx, feed.ID, items, skipBefore, triage)
 	if err != nil {
 		return fmt.Errorf("save entries: %w", err)
 	}
@@ -127,6 +136,12 @@ func (s *Service) save(ctx context.Context, feed *store.Feed, res *fetcher.FeedR
 	}
 	meta := fetcher.Meta(res.Feed, feed.FeedURL)
 	return s.store.FetchSuccess(ctx, feed.ID, res.ETag, res.LastModified, meta.SiteURL, meta.Description)
+}
+
+// ApplyFilter runs one filter over the unread, unstarred entries in its scope
+// and returns how many were marked read or removed.
+func (s *Service) ApplyFilter(ctx context.Context, f *store.Filter) (int64, error) {
+	return s.store.TriageUnread(ctx, f.FeedID, filter.Compile([]*store.Filter{f}).Triage)
 }
 
 // RefreshAll starts refreshing every feed in the background. It returns false

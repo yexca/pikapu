@@ -29,6 +29,11 @@ strings. When a password is configured, every route except `healthz` and
 | `GET /entries/{id}` | Entry with sanitized `content` |
 | `PATCH /entries/{id}` | `{"is_read"?, "is_starred"?}` |
 | `POST /entries/mark-all-read` | `{"feed_id"?, "category_id"?, "starred"?, "q"?}` → `{"updated"}` |
+| `GET /filters` | List filters, those for all feeds first |
+| `POST /filters` | `{"feed_id"?, "keywords", "match_content"?, "invert"?, "action"}` → `201` filter |
+| `PUT /filters/{id}` | Same body; replaces the filter |
+| `DELETE /filters/{id}` | Delete a filter |
+| `POST /filters/{id}/apply` | Run the filter over unread, unstarred entries in its scope → `{"updated"}` |
 | `GET /counters` | `{"unread", "starred", "feeds": {"<id>": n}, "refreshing"}` |
 | `GET /settings`, `PUT /settings` | `{"refresh_interval_minutes", "retention_days"}` |
 | `GET /opml` | OPML download |
@@ -36,6 +41,12 @@ strings. When a password is configured, every route except `healthz` and
 
 `category_name` creates the category if needed and takes precedence over
 `category_id`.
+
+A filter's `feed_id` is `null` (or omitted) for all feeds. `action` is
+`mark_read` or `skip`; `invert: true` applies it when none of the keywords
+appear; `match_content: true` also searches the article text. Keywords are
+trimmed, whitespace-collapsed, and de-duplicated ignoring case. Matching rules
+are in [Backend](backend.md#filters).
 
 ## Errors
 
@@ -66,6 +77,9 @@ Every error response has the same shape:
 | `opml_required` | 400 | No file uploaded |
 | `opml_invalid` | 400 | File is not OPML |
 | `category_not_found` | 400 | Referenced category does not exist |
+| `invalid_keywords` | 400 | Filter needs 1–50 keywords of up to 100 characters |
+| `invalid_filter_action` | 400 | Filter action is not `mark_read` or `skip` |
+| `unknown_feed` | 400 | Filter references a feed that does not exist |
 | `category_exists` | 409 | Duplicate category name |
 | `feed_exists` | 409 | Already subscribed |
 | `not_found` | 404 | Unknown resource or endpoint |

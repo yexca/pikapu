@@ -6,6 +6,8 @@ import type {
   EntryFilter,
   EntryPage,
   Feed,
+  Filter,
+  FilterInput,
   Settings,
 } from "./types"
 
@@ -126,6 +128,15 @@ export const api = {
       starred: !!filter.starred,
       q: filter.q?.trim() ?? "",
     }),
+
+  filters: () => request<Filter[]>("GET", "/filters"),
+  createFilter: (input: FilterInput) =>
+    request<Filter>("POST", "/filters", input),
+  updateFilter: (id: number, input: FilterInput) =>
+    request<Filter>("PUT", `/filters/${id}`, input),
+  deleteFilter: (id: number) => request<void>("DELETE", `/filters/${id}`),
+  applyFilter: (id: number) =>
+    request<{ updated: number }>("POST", `/filters/${id}/apply`),
 
   counters: () => request<Counters>("GET", "/counters"),
   settings: () => request<Settings>("GET", "/settings"),

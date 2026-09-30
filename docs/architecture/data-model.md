@@ -48,6 +48,21 @@ Timestamps are Unix seconds (UTC).
 Indexes cover newest-first listing overall, per feed, unread, and starred,
 plus `(feed_id, is_read)` for unread counts.
 
+### `filters`
+
+| Column | Notes |
+| --- | --- |
+| `id` | Primary key |
+| `feed_id` | Nullable (all feeds); `ON DELETE CASCADE` |
+| `keywords` | One keyword per line |
+| `match_content` | 0: title only; 1: title and article text |
+| `invert` | 1: apply when no keyword appears |
+| `action` | `mark_read` or `skip` |
+| `created_at` | |
+
+Filters only act when an entry is first stored (see
+[Backend](backend.md#filters)); skipped items are never written to `entries`.
+
 ### `settings`
 
 Key/value pairs: `refresh_interval_minutes`, `retention_days`, and
@@ -63,6 +78,7 @@ transaction on startup.
 | --- | --- |
 | 1 | Initial schema |
 | 2 | `feeds.last_error_code` |
+| 3 | `filters` table |
 
 Released migrations are immutable. Add a schema change as the next entry;
 never edit or reorder existing ones.

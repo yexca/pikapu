@@ -18,6 +18,8 @@ import type {
   EntryFilter,
   EntryPage,
   Feed,
+  Filter,
+  FilterInput,
   Settings,
 } from "./types"
 
@@ -27,6 +29,7 @@ export const keys = {
   feeds: ["feeds"] as const,
   counters: ["counters"] as const,
   settings: ["settings"] as const,
+  filters: ["filters"] as const,
   entryLists: ["entries"] as const,
   entries: (f: EntryFilter) => ["entries", f] as const,
   entry: (id: number) => ["entry", id] as const,
@@ -294,6 +297,54 @@ export function useDeleteCategory() {
   return useMutation({
     mutationFn: (id: number) => api.deleteCategory(id),
     onSuccess: () => invalidateSubscriptions(qc),
+    onError: (err) => toast.error(errorMessage(err)),
+  })
+}
+
+export function useFilters() {
+  return useQuery({ queryKey: keys.filters, queryFn: api.filters })
+}
+
+export function useSaveFilter() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...input }: FilterInput & { id?: number }) =>
+      id ? api.updateFilter(id, input) : api.createFilter(input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.filters }),
+  })
+}
+
+export function useDeleteFilter() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.deleteFilter(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.filters }),
+    onError: (err) => toast.error(errorMessage(err)),
+  })
+}
+
+/**
+ * Runs a just-saved filter over current unread articles, which may remove
+ * some. The toast lives here because the form unmounts before this settles.
+ */
+export function useApplyFilter() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (filter: Filter) => api.applyFilter(filter.id),
+    onSuccess: ({ updated }, filter) => {
+      if (updated === 0) {
+        toast.success(i18n.t("filters.saved"))
+        return
+      }
+      qc.invalidateQueries({ queryKey: keys.entryLists })
+      qc.invalidateQueries({ queryKey: ["entry"], refetchType: "none" })
+      qc.invalidateQueries({ queryKey: keys.counters })
+      toast.success(
+        filter.action === "skip"
+          ? i18n.t("filters.savedRemoved", { count: updated })
+          : i18n.t("filters.savedMarkedRead", { count: updated })
+      )
+    },
     onError: (err) => toast.error(errorMessage(err)),
   })
 }

@@ -36,10 +36,23 @@ type EntryInput struct {
 	PublishedAt time.Time
 }
 
+// Verdict says how an unseen item should be stored.
+type Verdict int
+
+const (
+	Keep     Verdict = iota // store as unread
+	KeepRead                // store already marked as read
+	Drop                    // do not store
+)
+
+// Triage decides the Verdict for an item; a nil Triage keeps everything.
+type Triage func(EntryInput) Verdict
+
 // SaveEntries inserts unseen items and refreshes the text of known ones.
 // Unseen items published before skipBefore are dropped so that entries removed
 // by retention cleanup do not come back; the zero time disables the check.
-func (s *Store) SaveEntries(ctx context.Context, feedID int64, items []EntryInput, skipBefore time.Time) (int, error) {
+// triage runs only for unseen items, so known entries keep their state.
+func (s *Store) SaveEntries(ctx context.Context, feedID int64, items []EntryInput, skipBefore time.Time, triage Triage) (int, error) {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
@@ -53,8 +66,8 @@ func (s *Store) SaveEntries(ctx context.Context, feedID int64, items []EntryInpu
 	defer lookup.Close()
 
 	insert, err := tx.PrepareContext(ctx,
-		`INSERT INTO entries (feed_id, guid, url, title, author, summary, content, image_url, published_at, created_at)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+		`INSERT INTO entries (feed_id, guid, url, title, author, summary, content, image_url, published_at, created_at, is_read)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
 	if err != nil {
 		return 0, err
 	}
@@ -88,8 +101,15 @@ func (s *Store) SaveEntries(ctx context.Context, feedID int64, items []EntryInpu
 			if !skipBefore.IsZero() && it.PublishedAt.Before(skipBefore) {
 				continue
 			}
+			verdict := Keep
+			if triage != nil {
+				verdict = triage(it)
+			}
+			if verdict == Drop {
+				continue
+			}
 			if _, err := insert.ExecContext(ctx, feedID, it.GUID, it.URL, it.Title, it.Author,
-				it.Summary, it.Content, it.ImageURL, unix(it.PublishedAt), now); err != nil {
+				it.Summary, it.Content, it.ImageURL, unix(it.PublishedAt), now, boolInt(verdict == KeepRead)); err != nil {
 				return 0, err
 			}
 			inserted++
@@ -288,6 +308,61 @@ func (s *Store) Counters(ctx context.Context) (*Counters, error) {
 	}
 	err = s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM entries WHERE is_starred = 1`).Scan(&c.Starred)
 	return c, err
+}
+
+// TriageUnread runs triage over the unread, unstarred entries of one feed (or
+// of all feeds when feedID is nil), marking KeepRead ones as read and deleting
+// Drop ones. It returns how many entries changed.
+func (s *Store) TriageUnread(ctx context.Context, feedID *int64, triage Triage) (int64, error) {
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	query := `SELECT id, title, content FROM entries WHERE is_read = 0 AND is_starred = 0`
+	var args []any
+	if feedID != nil {
+		query += ` AND feed_id = ?`
+		args = append(args, *feedID)
+	}
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		return 0, err
+	}
+	var read, drop []int64
+	for rows.Next() {
+		var (
+			id int64
+			it EntryInput
+		)
+		if err := rows.Scan(&id, &it.Title, &it.Content); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		switch triage(it) {
+		case KeepRead:
+			read = append(read, id)
+		case Drop:
+			drop = append(drop, id)
+		}
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return 0, err
+	}
+
+	for _, id := range read {
+		if _, err := tx.ExecContext(ctx, `UPDATE entries SET is_read = 1 WHERE id = ?`, id); err != nil {
+			return 0, err
+		}
+	}
+	for _, id := range drop {
+		if _, err := tx.ExecContext(ctx, `DELETE FROM entries WHERE id = ?`, id); err != nil {
+			return 0, err
+		}
+	}
+	return int64(len(read) + len(drop)), tx.Commit()
 }
 
 // DeleteOldEntries removes read, unstarred entries published before cutoff.

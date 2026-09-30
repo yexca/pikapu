@@ -13,7 +13,7 @@ Query, React Router, and i18next. Source in `frontend/src`.
 | `components/entries-view.tsx` | Orchestrates the list and the reader for the current view: selection, keyboard shortcuts, auto mark-as-read |
 | `components/entry-list.tsx` | List header, search, infinite scroll, empty states |
 | `components/reader.tsx` | Article toolbar and rendering |
-| `components/dialogs/` | Add/edit feed, category, settings, shortcuts, confirm dialogs, exposed through `useDialogs()` |
+| `components/dialogs/` | Add/edit feed, category, filters, settings, shortcuts, confirm dialogs, exposed through `useDialogs()` |
 | `components/ui/` | Generated shadcn/ui primitives |
 | `lib/api.ts` | Typed API client and `ApiError` (status, code, message) |
 | `lib/queries.ts` | TanStack Query hooks, optimistic updates, cache keys |

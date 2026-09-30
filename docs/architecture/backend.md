@@ -13,12 +13,13 @@ Go module `pikapu` in `backend/`. Router: chi. Database driver:
 | `internal/api` | Routes, JSON helpers, error contract, password auth, SPA file serving |
 | `internal/service` | Adding feeds, refresh orchestration and scheduling, retention cleanup, favicon lookup, OPML import/export |
 | `internal/fetcher` | HTTP fetching, feed discovery, item conversion, HTML sanitizing, favicon discovery, error classification |
+| `internal/filter` | Keyword filter matching: compiles `store.Filter` rows into a triage function for new entries |
 | `internal/store` | SQLite access, migrations, queries |
 | `internal/opml` | OPML parsing and writing |
 | `web` | `go:embed` of the frontend build (`web/dist`) |
 
-Dependencies point downward: `api → service → fetcher/store`. `store` and
-`fetcher` never import `api` or `service`.
+Dependencies point downward: `api → service → filter → fetcher → store`.
+`store` and `fetcher` never import `api`, `service`, or `filter`.
 
 ## Refresh Pipeline
 
@@ -40,6 +41,8 @@ Dependencies point downward: `api → service → fetcher/store`. `store` and
 5. **Saving** (`store.SaveEntries`): insert unseen GUIDs and update the text of
    known ones in one transaction. After the first fetch, unseen items older
    than the retention window are skipped so cleaned-up articles do not return.
+   Unseen items then pass through the feed's [filters](#filters), which store
+   them as read or drop them; known entries are never re-filtered.
 6. **Bookkeeping.** Success clears the error state; failure stores
    `last_error_code`, the English `last_error`, and increments `error_count`.
 
@@ -52,6 +55,25 @@ resolves relative `href`, `src`, `srcset`, and `poster` URLs, adds
 UGC policy, extended with figure, picture, video, audio, and allowlisted
 iframes, then removes everything else. Plain-text descriptions are converted
 to paragraphs.
+
+## Filters
+
+`service.save` loads the filters for the feed and for all feeds
+(`store.FiltersForFeed`) and compiles them with `filter.Compile`. The
+resulting `Triage` returns `Drop` if any skip rule applies, otherwise
+`KeepRead` if any mark-as-read rule applies, otherwise `Keep`.
+
+A rule applies when any keyword occurs in the text (or, with `invert`, when
+none does). The text is the title, plus the article's plain text
+(`fetcher.PlainText`) for `match_content` rules. Matching is case-insensitive
+(`strings.ToLower`). A keyword edge that is a letter or digit of a
+space-separated script must sit at a word boundary, so `ai` does not match
+"said"; Han, Hiragana, Katakana, and Hangul characters never need or form a
+boundary, so CJK keywords match anywhere and `ai` matches "AI绘画".
+
+`POST /filters/{id}/apply` runs one filter through `store.TriageUnread` over
+unread, unstarred entries in its scope, marking or deleting them in one
+transaction.
 
 ## Feed Discovery
 

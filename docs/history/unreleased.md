@@ -17,6 +17,9 @@ Planned as `v0.1.0`, the first release.
 - Favicon discovery and caching.
 - OPML import and export.
 - Localized reasons for failed feed updates.
+- Keyword filters for all feeds or one feed: mark new articles as read or
+  skip them, match titles or content, and optionally apply to current unread
+  articles.
 
 ## Settings and Languages
 

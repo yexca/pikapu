@@ -21,6 +21,8 @@ to read them.
   discovery from HTML pages.
 - Categories, per-feed and total unread counts, starring, search, and an
   unread/all filter.
+- Keyword filters that mark new articles as read or skip them, for all feeds
+  or one feed.
 - Background refresh with conditional requests, per-feed backoff after
   failures, and localized failure reasons in the UI.
 - Retention cleanup of old read articles (starred and unread articles are

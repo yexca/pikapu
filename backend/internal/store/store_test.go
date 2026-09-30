@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"testing"
 	"time"
 )
@@ -46,14 +47,14 @@ func TestSaveEntriesUpsert(t *testing.T) {
 	f := newFeed(t, s, "https://feed-a.example.com/feed", nil)
 	now := time.Now().UTC().Truncate(time.Second)
 
-	n, err := s.SaveEntries(ctx, f.ID, items(3, now), time.Time{})
+	n, err := s.SaveEntries(ctx, f.ID, items(3, now), time.Time{}, nil)
 	if err != nil || n != 3 {
 		t.Fatalf("first save: n=%d err=%v", n, err)
 	}
 
 	changed := items(3, now)
 	changed[0].Title = "Updated"
-	n, err = s.SaveEntries(ctx, f.ID, changed, time.Time{})
+	n, err = s.SaveEntries(ctx, f.ID, changed, time.Time{}, nil)
 	if err != nil || n != 0 {
 		t.Fatalf("second save: n=%d err=%v", n, err)
 	}
@@ -72,7 +73,7 @@ func TestSaveEntriesSkipsOldUnseen(t *testing.T) {
 	f := newFeed(t, s, "https://feed-a.example.com/feed", nil)
 	old := time.Now().AddDate(0, 0, -100)
 
-	n, err := s.SaveEntries(ctx, f.ID, items(2, old), time.Now().AddDate(0, 0, -30))
+	n, err := s.SaveEntries(ctx, f.ID, items(2, old), time.Now().AddDate(0, 0, -30), nil)
 	if err != nil || n != 0 {
 		t.Fatalf("old items should be skipped: n=%d err=%v", n, err)
 	}
@@ -83,7 +84,7 @@ func TestListEntriesPagination(t *testing.T) {
 	s := openTest(t)
 	f := newFeed(t, s, "https://feed-a.example.com/feed", nil)
 	start := time.Now().Add(-48 * time.Hour).UTC()
-	if _, err := s.SaveEntries(ctx, f.ID, items(25, start), time.Time{}); err != nil {
+	if _, err := s.SaveEntries(ctx, f.ID, items(25, start), time.Time{}, nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -129,8 +130,8 @@ func TestReadStateAndCounters(t *testing.T) {
 	a := newFeed(t, s, "https://feed-a.example.com/feed", &cat.ID)
 	b := newFeed(t, s, "https://feed-b.example.com/feed", nil)
 	now := time.Now().UTC()
-	s.SaveEntries(ctx, a.ID, items(3, now), time.Time{})
-	s.SaveEntries(ctx, b.ID, items(2, now), time.Time{})
+	s.SaveEntries(ctx, a.ID, items(3, now), time.Time{}, nil)
+	s.SaveEntries(ctx, b.ID, items(2, now), time.Time{}, nil)
 
 	list, _, _ := s.ListEntries(ctx, EntryFilter{FeedID: a.ID}, nil, 10)
 	yes := true
@@ -173,7 +174,7 @@ func TestSearchEscapesWildcards(t *testing.T) {
 	s.SaveEntries(ctx, f.ID, []EntryInput{
 		{GUID: "1", Title: "100% 纯中文标题", PublishedAt: now},
 		{GUID: "2", Title: "Another post", PublishedAt: now},
-	}, time.Time{})
+	}, time.Time{}, nil)
 
 	for q, want := range map[string]int{"中文": 1, "100%": 1, "%": 1, "post": 1, "nothing": 0} {
 		list, _, err := s.ListEntries(ctx, EntryFilter{Query: q}, nil, 10)
@@ -191,7 +192,7 @@ func TestDeleteOldEntriesKeepsStarredAndUnread(t *testing.T) {
 	s := openTest(t)
 	f := newFeed(t, s, "https://feed-a.example.com/feed", nil)
 	old := time.Now().AddDate(0, 0, -200).UTC()
-	s.SaveEntries(ctx, f.ID, items(3, old), time.Time{})
+	s.SaveEntries(ctx, f.ID, items(3, old), time.Time{}, nil)
 	list, _, _ := s.ListEntries(ctx, EntryFilter{}, nil, 10)
 
 	yes := true
@@ -219,5 +220,130 @@ func TestDeleteCategoryUncategorizesFeeds(t *testing.T) {
 	got, err := s.GetFeed(ctx, f.ID)
 	if err != nil || got.CategoryID != nil {
 		t.Fatalf("feed should be uncategorized: %+v %v", got, err)
+	}
+}
+
+func TestSaveEntriesTriagesOnlyNewItems(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+	f := newFeed(t, s, "https://feed-a.example.com/feed", nil)
+	now := time.Now().UTC()
+
+	var seen []string
+	triage := func(it EntryInput) Verdict {
+		seen = append(seen, it.GUID)
+		switch it.GUID {
+		case "g0":
+			return KeepRead
+		case "g1":
+			return Drop
+		}
+		return Keep
+	}
+	n, err := s.SaveEntries(ctx, f.ID, items(3, now), time.Time{}, triage)
+	if err != nil || n != 2 {
+		t.Fatalf("save: n=%d err=%v", n, err)
+	}
+	list, _, _ := s.ListEntries(ctx, EntryFilter{FeedID: f.ID}, nil, 10)
+	if len(list) != 2 || list[0].Title != "Entry 2" || list[0].IsRead || list[1].Title != "Entry 0" || !list[1].IsRead {
+		t.Fatalf("unexpected entries: %+v %+v", list[0], list[1])
+	}
+
+	// A known entry is never triaged again, so marking it unread sticks; a
+	// dropped item is offered to triage again on the next fetch.
+	no := false
+	s.UpdateEntryState(ctx, list[1].ID, &no, nil)
+	seen = nil
+	s.SaveEntries(ctx, f.ID, items(3, now), time.Time{}, triage)
+	if !slices.Equal(seen, []string{"g1"}) {
+		t.Fatalf("triaged %v, want only the dropped item", seen)
+	}
+	if e, _ := s.GetEntry(ctx, list[1].ID); e.IsRead {
+		t.Fatal("a known entry's read state must not change")
+	}
+}
+
+func TestFiltersForFeedAndCascade(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+	a := newFeed(t, s, "https://feed-a.example.com/feed", nil)
+	b := newFeed(t, s, "https://feed-b.example.com/feed", nil)
+
+	global := &Filter{Keywords: []string{"Sponsored", "广告"}, Action: FilterSkip}
+	onA := &Filter{FeedID: &a.ID, Keywords: []string{"digest"}, MatchContent: true, Invert: true, Action: FilterMarkRead}
+	for _, f := range []*Filter{onA, global} {
+		if err := s.CreateFilter(ctx, f); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	got, err := s.GetFilter(ctx, onA.ID)
+	if err != nil || *got.FeedID != a.ID || !slices.Equal(got.Keywords, []string{"digest"}) ||
+		!got.MatchContent || !got.Invert || got.Action != FilterMarkRead {
+		t.Fatalf("round trip: %+v %v", got, err)
+	}
+	all, _ := s.ListFilters(ctx)
+	if len(all) != 2 || all[0].ID != global.ID {
+		t.Fatalf("filters for all feeds should be listed first: %+v", all)
+	}
+	if forB, _ := s.FiltersForFeed(ctx, b.ID); len(forB) != 1 || forB[0].ID != global.ID {
+		t.Fatalf("feed b should only get the global filter: %+v", forB)
+	}
+	if forA, _ := s.FiltersForFeed(ctx, a.ID); len(forA) != 2 {
+		t.Fatalf("feed a should get both filters: %+v", forA)
+	}
+
+	global.Keywords = []string{"giveaway"}
+	if err := s.UpdateFilter(ctx, global); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := s.GetFilter(ctx, global.ID); !slices.Equal(got.Keywords, []string{"giveaway"}) {
+		t.Fatalf("update: %+v", got)
+	}
+
+	if err := s.DeleteFeed(ctx, a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.GetFilter(ctx, onA.ID); err != ErrNotFound {
+		t.Fatalf("a feed's filters should be deleted with it, got %v", err)
+	}
+	if err := s.DeleteFilter(ctx, global.ID); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.DeleteFilter(ctx, global.ID); err != ErrNotFound {
+		t.Fatalf("deleting twice: %v", err)
+	}
+}
+
+func TestTriageUnreadSkipsReadAndStarred(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+	a := newFeed(t, s, "https://feed-a.example.com/feed", nil)
+	b := newFeed(t, s, "https://feed-b.example.com/feed", nil)
+	now := time.Now().UTC()
+	s.SaveEntries(ctx, a.ID, items(4, now), time.Time{}, nil)
+	s.SaveEntries(ctx, b.ID, items(2, now), time.Time{}, nil)
+
+	list, _, _ := s.ListEntries(ctx, EntryFilter{FeedID: a.ID}, nil, 10) // Entry 3..0
+	yes := true
+	s.UpdateEntryState(ctx, list[0].ID, &yes, nil) // Entry 3: read
+	s.UpdateEntryState(ctx, list[1].ID, nil, &yes) // Entry 2: starred
+
+	triage := func(it EntryInput) Verdict {
+		if it.Title == "Entry 1" {
+			return Drop
+		}
+		return KeepRead
+	}
+	n, err := s.TriageUnread(ctx, &a.ID, triage)
+	if err != nil || n != 2 {
+		t.Fatalf("n=%d err=%v, want Entry 1 dropped and Entry 0 read", n, err)
+	}
+	after, _, _ := s.ListEntries(ctx, EntryFilter{FeedID: a.ID}, nil, 10)
+	if len(after) != 3 || after[1].IsRead || !after[2].IsRead || after[2].Title != "Entry 0" {
+		t.Fatalf("unexpected entries after triage: %+v", after)
+	}
+	if c, _ := s.Counters(ctx); c.Feeds[b.ID] != 2 {
+		t.Fatalf("other feeds must be untouched: %+v", c.Feeds)
 	}
 }

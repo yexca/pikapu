@@ -10,6 +10,7 @@ import (
 	"unicode/utf8"
 
 	"pikapu/internal/fetcher"
+	"pikapu/internal/filter"
 	"pikapu/internal/opml"
 	"pikapu/internal/service"
 	"pikapu/internal/store"
@@ -435,6 +436,120 @@ func (h *handler) counters(w http.ResponseWriter, r *http.Request) {
 		"feeds":      c.Feeds,
 		"refreshing": h.svc.Refreshing(),
 	})
+}
+
+// ---- filters ----
+
+func (h *handler) listFilters(w http.ResponseWriter, r *http.Request) {
+	list, err := h.store.ListFilters(r.Context())
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, list)
+}
+
+// decodeFilter reads and validates a filter body. A missing or non-positive
+// feed_id means the filter applies to all feeds.
+func (h *handler) decodeFilter(w http.ResponseWriter, r *http.Request) (*store.Filter, bool) {
+	var body struct {
+		FeedID       *int64   `json:"feed_id"`
+		Keywords     []string `json:"keywords"`
+		MatchContent bool     `json:"match_content"`
+		Invert       bool     `json:"invert"`
+		Action       string   `json:"action"`
+	}
+	if !decodeJSON(w, r, &body) {
+		return nil, false
+	}
+	keywords, ok := filter.CleanKeywords(body.Keywords)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid_keywords",
+			fmt.Sprintf("keywords must be 1-%d entries of up to %d characters", filter.MaxKeywords, filter.MaxKeywordLength))
+		return nil, false
+	}
+	if body.Action != store.FilterMarkRead && body.Action != store.FilterSkip {
+		writeError(w, http.StatusBadRequest, "invalid_filter_action", "action must be mark_read or skip")
+		return nil, false
+	}
+	f := &store.Filter{Keywords: keywords, MatchContent: body.MatchContent, Invert: body.Invert, Action: body.Action}
+	if body.FeedID != nil && *body.FeedID > 0 {
+		if _, err := h.store.GetFeed(r.Context(), *body.FeedID); err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				writeError(w, http.StatusBadRequest, "unknown_feed", "feed does not exist")
+			} else {
+				h.fail(w, err)
+			}
+			return nil, false
+		}
+		f.FeedID = body.FeedID
+	}
+	return f, true
+}
+
+func (h *handler) createFilter(w http.ResponseWriter, r *http.Request) {
+	f, ok := h.decodeFilter(w, r)
+	if !ok {
+		return
+	}
+	if err := h.store.CreateFilter(r.Context(), f); err != nil {
+		h.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, f)
+}
+
+func (h *handler) updateFilter(w http.ResponseWriter, r *http.Request) {
+	id, ok := idParam(w, r)
+	if !ok {
+		return
+	}
+	f, ok := h.decodeFilter(w, r)
+	if !ok {
+		return
+	}
+	f.ID = id
+	if err := h.store.UpdateFilter(r.Context(), f); err != nil {
+		h.fail(w, err)
+		return
+	}
+	saved, err := h.store.GetFilter(r.Context(), id)
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, saved)
+}
+
+func (h *handler) deleteFilter(w http.ResponseWriter, r *http.Request) {
+	id, ok := idParam(w, r)
+	if !ok {
+		return
+	}
+	if err := h.store.DeleteFilter(r.Context(), id); err != nil {
+		h.fail(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// applyFilter runs a saved filter over current unread, unstarred entries.
+func (h *handler) applyFilter(w http.ResponseWriter, r *http.Request) {
+	id, ok := idParam(w, r)
+	if !ok {
+		return
+	}
+	f, err := h.store.GetFilter(r.Context(), id)
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	n, err := h.svc.ApplyFilter(r.Context(), f)
+	if err != nil {
+		h.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]int64{"updated": n})
 }
 
 // ---- settings ----

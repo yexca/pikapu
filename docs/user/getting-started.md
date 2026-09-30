@@ -63,4 +63,5 @@ only.
 
 - [Reading](reading.md)
 - [Subscriptions](subscriptions.md)
+- [Filters](filters.md)
 - [Settings](settings.md)

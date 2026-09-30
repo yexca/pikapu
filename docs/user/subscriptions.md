@@ -28,8 +28,8 @@ same feed twice is rejected.
 
 Use the **⋯** menu on a feed (in the sidebar, or in the list header when the
 feed is open) to refresh it, mark it read, edit its name, URL, or category,
-visit the website, or unsubscribe. Unsubscribing deletes all of the feed's
-articles, including starred ones.
+add a [filter](filters.md), visit the website, or unsubscribe. Unsubscribing deletes all of the feed's
+articles, including starred ones, and its filters.
 
 ## Updates
 

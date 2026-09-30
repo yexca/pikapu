@@ -47,6 +47,7 @@ host toolchain do not replace the Docker targets.
 - settings and URL validation error codes
 - OPML import, the background fetch of a `.invalid` feed failing with a
   `fetch_*` code, and OPML export
+- filter validation codes, creation, applying, and deletion
 - sign-out
 
 It needs no outbound network access, and it prints the container logs when a
@@ -70,6 +71,7 @@ check fails.
 | Package | Covered behavior |
 | --- | --- |
 | `internal/fetcher` | HTML sanitizing (scripts, relative URLs, lazy images, tracking pixels, iframe allowlist), plain-text extraction, title cleanup, duplicate-heading removal, URL normalization, feed-link discovery, error classification |
-| `internal/store` | Upsert semantics, retention skip, cursor pagination, read/star state and counters, category-scoped mark-all-read, search escaping, retention cleanup, category deletion |
+| `internal/filter` | Keyword matching (case, word boundaries, CJK), keyword cleanup and limits, title vs. content rules, inverted rules, skip-over-read precedence |
+| `internal/store` | Upsert semantics, retention skip, cursor pagination, read/star state and counters, category-scoped mark-all-read, search escaping, retention cleanup, category deletion, filter CRUD and scoping, triage of new vs. known entries, applying a filter to unread entries |
 | `internal/api` | SPA fallback, cache headers, and the web app manifest content type |
 | smoke test | Runtime HTTP contract of the built image |

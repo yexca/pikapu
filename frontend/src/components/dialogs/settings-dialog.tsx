@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 import {
   DownloadIcon,
+  ListFilterIcon,
   LogOutIcon,
   MonitorIcon,
   MoonIcon,
@@ -38,6 +39,8 @@ import {
   useSettings,
 } from "@/lib/queries"
 import type { AuthStatus } from "@/lib/types"
+
+import { useDialogs } from "./dialogs-provider"
 
 const intervals = [15, 30, 60, 120, 360, 720, 1440]
 const retentions = [30, 60, 90, 180, 365, 0]
@@ -147,6 +150,7 @@ function SettingsBody() {
   const settings = useSettings()
   const save = useSaveSettings()
   const importOpml = useImportOpml()
+  const dialogs = useDialogs()
   const fileRef = useRef<HTMLInputElement>(null)
   const auth = qc.getQueryData<AuthStatus>(keys.auth)
 
@@ -244,6 +248,15 @@ function SettingsBody() {
             checked={prefs.autoMarkRead}
             onCheckedChange={(v) => setPrefs({ autoMarkRead: v })}
           />
+        </Row>
+        <Row
+          title={t("settings.filters")}
+          description={t("settings.filtersHint")}
+        >
+          <Button variant="outline" size="sm" onClick={() => dialogs.filters()}>
+            <ListFilterIcon />
+            {t("settings.manageFilters")}
+          </Button>
         </Row>
       </Section>
 

@@ -154,6 +154,32 @@ async function run() {
     exported.status === 200 && exported.text.includes("feed.example.invalid/rss")
   )
 
+  const noKeywords = await call("POST", "/api/filters", {
+    body: { keywords: [" ", ""], action: "skip" },
+  })
+  check("filters need keywords", noKeywords.status === 400 && noKeywords.json?.code === "invalid_keywords")
+  const badAction = await call("POST", "/api/filters", {
+    body: { keywords: ["Example"], action: "archive" },
+  })
+  check("filter actions are validated", badAction.status === 400 && badAction.json?.code === "invalid_filter_action")
+  const noFeed = await call("POST", "/api/filters", {
+    body: { feed_id: 999, keywords: ["Example"], action: "skip" },
+  })
+  check("filters must target an existing feed", noFeed.status === 400 && noFeed.json?.code === "unknown_feed")
+  const created = await call("POST", "/api/filters", {
+    body: { feed_id: feed.id, keywords: ["Sponsored", "sponsored", "广告"], action: "mark_read" },
+  })
+  check(
+    "filters can be created with de-duplicated keywords",
+    created.status === 201 && created.json?.feed_id === feed.id && created.json?.keywords?.length === 2,
+    created.text
+  )
+  const applied = await call("POST", `/api/filters/${created.json?.id}/apply`)
+  check("a filter can be applied to unread articles", applied.status === 200 && applied.json?.updated === 0)
+  const removed = await call("DELETE", `/api/filters/${created.json?.id}`)
+  const remaining = await call("GET", "/api/filters")
+  check("filters can be deleted", removed.status === 204 && remaining.json?.length === 0)
+
   const logout = await call("POST", "/api/auth/logout")
   check("sign-out succeeds", logout.status === 204)
 }

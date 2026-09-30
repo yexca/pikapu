@@ -45,6 +45,23 @@ export interface Counters {
   refreshing: boolean
 }
 
+export type FilterAction = "mark_read" | "skip"
+
+/** A keyword rule applied to new articles; feed_id null means all feeds. */
+export interface Filter {
+  id: number
+  feed_id: number | null
+  keywords: string[]
+  /** Also look in the article text, not just the title. */
+  match_content: boolean
+  /** Apply the action when none of the keywords appear. */
+  invert: boolean
+  action: FilterAction
+  created_at: string
+}
+
+export type FilterInput = Omit<Filter, "id" | "created_at">
+
 export interface Settings {
   refresh_interval_minutes: number
   retention_days: number

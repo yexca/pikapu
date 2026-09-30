@@ -24,6 +24,7 @@ The theme can also be switched from the sun/moon button in the sidebar footer.
 | Setting | Scope | Default |
 | --- | --- | --- |
 | Mark articles as read when opened | browser | On |
+| Filters | server | None; see [Filters](filters.md) |
 
 ## Feed Updates
 

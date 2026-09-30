@@ -28,6 +28,8 @@ port.
   Pikapu discovers the feed from `<link rel="alternate">` or common paths.
 - **Organized reading.** Categories, unread counts, starring, search, and an
   unread/all filter across every view.
+- **Keyword filters.** Mark new articles as read or skip them by keyword, for
+  every feed or just one.
 - **Comfortable reader.** Three panes on desktop, a single column on phones,
   light and dark themes, adjustable text size, and keyboard shortcuts.
   Install it to your home screen or desktop to use it like an app.

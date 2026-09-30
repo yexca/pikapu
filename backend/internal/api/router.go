@@ -70,6 +70,12 @@ func New(ctx context.Context, st *store.Store, svc *service.Service, password st
 			r.Get("/entries/{id}", h.getEntry)
 			r.Patch("/entries/{id}", h.updateEntry)
 
+			r.Get("/filters", h.listFilters)
+			r.Post("/filters", h.createFilter)
+			r.Put("/filters/{id}", h.updateFilter)
+			r.Delete("/filters/{id}", h.deleteFilter)
+			r.Post("/filters/{id}/apply", h.applyFilter)
+
 			r.Get("/counters", h.counters)
 			r.Get("/settings", h.getSettings)
 			r.Put("/settings", h.updateSettings)

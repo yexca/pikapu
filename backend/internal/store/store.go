@@ -98,6 +98,19 @@ var migrations = []string{
 	`,
 	// 2: machine-readable fetch failure code for localized UI messages.
 	`ALTER TABLE feeds ADD COLUMN last_error_code TEXT NOT NULL DEFAULT '';`,
+	// 3: keyword filters applied to newly fetched entries.
+	`
+	CREATE TABLE filters (
+		id            INTEGER PRIMARY KEY,
+		feed_id       INTEGER REFERENCES feeds(id) ON DELETE CASCADE,
+		keywords      TEXT NOT NULL,
+		match_content INTEGER NOT NULL DEFAULT 0,
+		invert        INTEGER NOT NULL DEFAULT 0,
+		action        TEXT NOT NULL,
+		created_at    INTEGER NOT NULL
+	);
+	CREATE INDEX idx_filters_feed ON filters(feed_id);
+	`,
 }
 
 func (s *Store) migrate(ctx context.Context) error {

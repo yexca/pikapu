@@ -9,6 +9,7 @@ import {
   ExternalLinkIcon,
   FolderPlusIcon,
   InboxIcon,
+  ListFilterIcon,
   MonitorIcon,
   MoonIcon,
   MoreHorizontalIcon,
@@ -490,6 +491,10 @@ export function FeedMenu({
         <DropdownMenuItem onClick={() => dialogs.editFeed(feed)}>
           <PencilIcon />
           {t("feed.edit")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => dialogs.filters({ feedId: feed.id })}>
+          <ListFilterIcon />
+          {t("feed.addFilter")}
         </DropdownMenuItem>
         {feed.site_url && (
           <DropdownMenuItem asChild>

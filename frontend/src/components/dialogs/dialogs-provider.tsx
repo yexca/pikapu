@@ -17,6 +17,7 @@ import type { Category, Feed } from "@/lib/types"
 import { AddFeedDialog } from "./add-feed-dialog"
 import { CategoryDialog } from "./category-dialog"
 import { EditFeedDialog } from "./edit-feed-dialog"
+import { FiltersDialog, type FiltersTarget } from "./filters-dialog"
 import { SettingsDialog } from "./settings-dialog"
 import { ShortcutsDialog } from "./shortcuts-dialog"
 
@@ -31,6 +32,8 @@ interface DialogsApi {
   addFeed: () => void
   editFeed: (feed: Feed) => void
   category: (category?: Category) => void
+  /** Opens the filter list, or a new filter for `feedId` when given. */
+  filters: (options?: { feedId?: number }) => void
   settings: () => void
   shortcuts: () => void
   confirm: (options: ConfirmOptions) => Promise<boolean>
@@ -57,6 +60,10 @@ export function DialogsProvider({ children }: { children: React.ReactNode }) {
     open: false,
     value: null,
   })
+  const [filters, setFilters] = useState<Slot<FiltersTarget>>({
+    open: false,
+    value: { feedId: null, nonce: 0 },
+  })
   const [confirm, setConfirm] = useState<Slot<ConfirmOptions>>({
     open: false,
     value: { title: "" },
@@ -68,6 +75,11 @@ export function DialogsProvider({ children }: { children: React.ReactNode }) {
       addFeed: () => setAddOpen(true),
       editFeed: (feed) => setEdit({ open: true, value: feed }),
       category: (c) => setCategory({ open: true, value: c ?? null }),
+      filters: (options) =>
+        setFilters((s) => ({
+          open: true,
+          value: { feedId: options?.feedId ?? null, nonce: s.value.nonce + 1 },
+        })),
       settings: () => setSettingsOpen(true),
       shortcuts: () => setShortcutsOpen(true),
       confirm: (options) =>
@@ -101,6 +113,11 @@ export function DialogsProvider({ children }: { children: React.ReactNode }) {
         onOpenChange={(open) => setCategory((s) => ({ ...s, open }))}
       />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <FiltersDialog
+        target={filters.value}
+        open={filters.open}
+        onOpenChange={(open) => setFilters((s) => ({ ...s, open }))}
+      />
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
       <AlertDialog
         open={confirm.open}

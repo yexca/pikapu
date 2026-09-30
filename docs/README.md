@@ -18,6 +18,7 @@ understanding it, and changing it.
   - [Reading](user/reading.md): views, filters, search, shortcuts
   - [Subscriptions](user/subscriptions.md): adding feeds, categories, OPML,
     update errors
+  - [Filters](user/filters.md): marking as read or skipping articles by keyword
   - [Settings](user/settings.md): language, appearance, refresh, retention
 - **Operations**
   - [Docker](operations/docker.md)
