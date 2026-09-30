@@ -1,0 +1,14 @@
+services:
+  pikapu:
+    build: .
+    image: ${PIKAPU_IMAGE:-pikapu:latest}
+    container_name: pikapu
+    restart: unless-stopped
+    ports:
+      - "${PIKAPU_PORT:-7660}:7660"
+    volumes:
+      - ./data:/data
+    # Optional settings are read from .env beside this file; see .env.example.
+    environment:
+      PIKAPU_PASSWORD: ${PIKAPU_PASSWORD:-}
+      TZ: ${TZ:-UTC}

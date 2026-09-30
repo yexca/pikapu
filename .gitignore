@@ -1,0 +1,28 @@
+# Runtime data (SQLite database) and local configuration
+data/
+.env
+.env.*
+!.env.example
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+
+# Embedded frontend build (populated during the Docker build)
+backend/web/dist/*
+!backend/web/dist/.gitkeep
+
+# Backend build and test output
+backend/bin/
+backend/coverage*.out
+*.exe
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+*.log
+
+# Local agent/tool settings
+.claude/

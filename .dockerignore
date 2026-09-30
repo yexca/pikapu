@@ -1,0 +1,14 @@
+.git
+.claude
+.env
+.env.*
+data
+docs
+scripts
+**/node_modules
+**/dist
+!backend/web/dist/.gitkeep
+backend/bin
+backend/coverage*.out
+**/*.log
+**/*.exe
