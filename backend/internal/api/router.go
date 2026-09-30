@@ -37,7 +37,8 @@ func New(ctx context.Context, st *store.Store, svc *service.Service, password st
 	r.Use(middleware.Recoverer)
 	r.Use(securityHeaders)
 	r.Use(middleware.Compress(5, "application/json", "text/html", "text/css",
-		"text/javascript", "application/javascript", "image/svg+xml", "text/x-opml"))
+		"text/javascript", "application/javascript", "image/svg+xml", "text/x-opml",
+		"application/manifest+json"))
 
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {

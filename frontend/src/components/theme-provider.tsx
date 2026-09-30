@@ -12,6 +12,11 @@ type ThemeProviderState = {
 
 const STORAGE_KEY = "pikapu-theme"
 const COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)"
+// Matches --background; colors the browser toolbar and installed app bar.
+const THEME_COLORS: Record<ResolvedTheme, string> = {
+  light: "#ffffff",
+  dark: "#0a0a0a",
+}
 
 const ThemeProviderContext = React.createContext<
   ThemeProviderState | undefined
@@ -40,6 +45,10 @@ function applyTheme(resolved: ResolvedTheme) {
   const root = document.documentElement
   root.classList.remove("light", "dark")
   root.classList.add(resolved)
+  // index.html follows the system scheme; an explicit choice overrides it.
+  document
+    .querySelectorAll('meta[name="theme-color"]')
+    .forEach((m) => m.setAttribute("content", THEME_COLORS[resolved]))
 
   window.getComputedStyle(document.body)
   requestAnimationFrame(() => requestAnimationFrame(() => style.remove()))

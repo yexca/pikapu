@@ -7,6 +7,8 @@ Planned as `v0.1.0`, the first release.
 - Search within the current view.
 - Keyboard shortcuts (`J`/`K`, `M`, `S`, `V`, `R`, `/`, `Shift+A`, `?`).
 - Light and dark themes and adjustable article text size.
+- Installable as an app on phones and desktops (web app manifest, home-screen
+  icons), with the unread count in the page title and on the app icon.
 
 ## Subscriptions
 

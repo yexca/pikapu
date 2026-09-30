@@ -61,6 +61,27 @@ All strings come from `i18n/locales/en.ts` (canonical) and `zh-Hans.ts`.
 errors are localized from their `code` by `errorMessage()`; feed update errors
 by `feedErrorMessage()`. See [Internationalization](../development/i18n.md).
 
+## Installable App
+
+`public/manifest.webmanifest` makes the SPA installable (`display:
+standalone`). There is no service worker and no offline cache: the reader
+always talks to the server, and the backend serves `.webmanifest` files as
+`application/manifest+json`.
+
+- Icons: `favicon.svg`, `icon-192.png`, `icon-512.png`,
+  `icon-maskable-512.png` (Android adaptive icons), and `apple-touch-icon.png`
+  (iOS). The PNGs are committed; `make icons` renders them from
+  `docs/assets/pikapu-icon.svg` and `pikapu-icon-maskable.svg` in a
+  container.
+- `ThemeProvider` rewrites `<meta name="theme-color">` to match the resolved
+  theme, so an explicit Light or Dark choice also colors the browser toolbar
+  and the installed app's title bar.
+- `useUnreadBadge` (in `App.tsx`) puts the unread count in `document.title`
+  and on the app icon through the Badging API where supported.
+- `index.html` sets `viewport-fit=cover`, so bottom-anchored scroll areas and
+  the sidebar footer pad by `env(safe-area-inset-bottom)` to stay clear of the
+  iPhone home indicator.
+
 ## Styling
 
 Theme tokens are CSS variables in `index.css` (shadcn "nova" preset, neutral

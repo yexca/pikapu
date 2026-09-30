@@ -41,6 +41,7 @@ host toolchain do not replace the Docker targets.
 
 - health check and version
 - SPA serving and client-route fallback
+- the public web app manifest and its icons
 - the auth boundary, a wrong password, and the session cookie
 - category creation and case-insensitive uniqueness
 - settings and URL validation error codes
@@ -70,4 +71,5 @@ check fails.
 | --- | --- |
 | `internal/fetcher` | HTML sanitizing (scripts, relative URLs, lazy images, tracking pixels, iframe allowlist), plain-text extraction, title cleanup, duplicate-heading removal, URL normalization, feed-link discovery, error classification |
 | `internal/store` | Upsert semantics, retention skip, cursor pagination, read/star state and counters, category-scoped mark-all-read, search escaping, retention cleanup, category deletion |
+| `internal/api` | SPA fallback, cache headers, and the web app manifest content type |
 | smoke test | Runtime HTTP contract of the built image |

@@ -97,6 +97,19 @@ frontend-format: ## Check frontend formatting locally
 frontend-build: ## Build the frontend locally into frontend/dist
 	cd frontend && $(NPM) run build
 
+# The PNG icons are committed; rerun this only when the logo changes.
+ICON_SVG := docs/assets/pikapu-icon.svg
+ICON_MASKABLE_SVG := docs/assets/pikapu-icon-maskable.svg
+.PHONY: icons
+icons: ## Render the app icons in frontend/public from docs/assets (container; needs network)
+	$(DOCKER) run --rm -v "$(CURDIR):/src" -w /src alpine:3.22 sh -c '\
+		apk add --no-cache -q rsvg-convert oxipng && \
+		rsvg-convert -w 192 -h 192 -o frontend/public/icon-192.png $(ICON_SVG) && \
+		rsvg-convert -w 512 -h 512 -o frontend/public/icon-512.png $(ICON_SVG) && \
+		rsvg-convert -w 512 -h 512 -o frontend/public/icon-maskable-512.png $(ICON_MASKABLE_SVG) && \
+		rsvg-convert -w 180 -h 180 -o frontend/public/apple-touch-icon.png $(ICON_MASKABLE_SVG) && \
+		oxipng -q -o 4 --strip safe frontend/public/*.png'
+
 # ---------------------------------------------------------------------------
 # Docker runtime
 # ---------------------------------------------------------------------------

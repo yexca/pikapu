@@ -178,7 +178,7 @@ export function Reader({
 
       <div
         key={entry.id}
-        className="scroll-thin min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        className="scroll-thin min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]"
       >
         <article className="mx-auto w-full max-w-[46rem] px-5 pt-8 pb-16 sm:px-8 lg:pt-12">
           <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">

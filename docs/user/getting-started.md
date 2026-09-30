@@ -33,6 +33,25 @@ Already using another reader? Export an OPML file there and import it under
 
 More in [Reading](reading.md).
 
+## Install as an App
+
+Pikapu can be added to a phone's home screen or installed on a desktop, where
+it opens in its own window without the browser toolbar:
+
+| Browser | How |
+| --- | --- |
+| Safari on iPhone / iPad | **Share → Add to Home Screen** |
+| Chrome on Android | **⋮ → Add to Home screen** or **Install app** |
+| Chrome / Edge on desktop | The install icon in the address bar, or **⋮ → Cast, save, and share → Install page as app** |
+
+Browsers only offer a real app install over HTTPS (or on `localhost`); over
+plain HTTP you get a shortcut that opens in a browser tab. Put Pikapu behind a
+reverse proxy with TLS as described in [Security](../operations/security.md).
+
+The page title shows the unread count, for example `(12) Pikapu`. An installed
+app also shows it as a badge on its icon where the system supports app badges.
+Pikapu has no offline mode; it needs a connection to your server.
+
 ## Choose a Language
 
 Pikapu follows your browser's language when it is English or Simplified

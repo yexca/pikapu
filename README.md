@@ -30,6 +30,7 @@ port.
   unread/all filter across every view.
 - **Comfortable reader.** Three panes on desktop, a single column on phones,
   light and dark themes, adjustable text size, and keyboard shortcuts.
+  Install it to your home screen or desktop to use it like an app.
 - **Safe article rendering.** Feed HTML is sanitized on the server; relative
   links and lazy-loaded images are repaired; site favicons are cached.
 - **Background refresh.** Conditional requests (ETag / Last-Modified),

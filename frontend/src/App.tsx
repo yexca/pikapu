@@ -64,6 +64,7 @@ export default function App() {
 
 function Shell() {
   useRefreshWatcher()
+  useUnreadBadge()
   const location = useLocation()
 
   return (
@@ -85,6 +86,30 @@ function Shell() {
         </SidebarInset>
       </SidebarProvider>
     </DialogsProvider>
+  )
+}
+
+/**
+ * Shows the unread count in the page title and, for an installed app, on
+ * its icon where the platform supports app badges.
+ */
+function useUnreadBadge() {
+  const unread = useCounters().data?.unread ?? 0
+
+  useEffect(() => {
+    document.title = unread > 0 ? `(${unread}) Pikapu` : "Pikapu"
+    // Rejects or is missing where badges are unsupported or not permitted.
+    const badge =
+      unread > 0 ? navigator.setAppBadge?.(unread) : navigator.clearAppBadge?.()
+    badge?.catch(() => {})
+  }, [unread])
+
+  useEffect(
+    () => () => {
+      document.title = "Pikapu"
+      navigator.clearAppBadge?.().catch(() => {})
+    },
+    []
   )
 }
 

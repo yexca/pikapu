@@ -81,6 +81,22 @@ async function run() {
   check("index serves the web app", index.status === 200 && index.text.includes('id="root"'))
   const deep = await call("GET", "/feeds/1")
   check("client routes fall back to index.html", deep.status === 200 && deep.text.includes('id="root"'))
+  const manifest = await call("GET", "/manifest.webmanifest", { auth: false })
+  check(
+    "the web app manifest is public and typed",
+    manifest.status === 200 &&
+      manifest.headers.get("content-type") === "application/manifest+json" &&
+      manifest.json?.display === "standalone",
+    `${manifest.status} ${manifest.headers.get("content-type")}`
+  )
+  const icons = await Promise.all(
+    (manifest.json?.icons ?? []).map((icon) => call("GET", icon.src, { auth: false }))
+  )
+  check(
+    "manifest icons are served as images",
+    icons.length > 0 && icons.every((r) => r.status === 200 && r.headers.get("content-type")?.startsWith("image/")),
+    icons.map((r) => `${r.status} ${r.headers.get("content-type")}`).join(", ")
+  )
 
   const anon = await call("GET", "/api/feeds", { auth: false })
   check("API requires sign-in", anon.status === 401 && anon.json?.code === "unauthorized")

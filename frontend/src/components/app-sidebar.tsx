@@ -244,7 +244,7 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border/60 py-2">
+      <SidebarFooter className="border-t border-sidebar-border/60 pt-2 pb-[max(--spacing(2),env(safe-area-inset-bottom))]">
         <FooterBar feeds={feeds} refreshing={!!counters?.refreshing} />
       </SidebarFooter>
     </Sidebar>

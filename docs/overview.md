@@ -29,6 +29,8 @@ to read them.
 - OPML import and export.
 - Optional single-password sign-in.
 - English and Simplified Chinese UI with English fallback.
+- Installable as an app (web app manifest), with the unread count on the icon
+  where supported.
 
 ## Non-Goals
 

@@ -105,7 +105,7 @@ export function EntryList(props: EntryListProps) {
       <ListHeader {...props} />
       <div
         ref={scrollRef}
-        className="scroll-thin min-h-0 flex-1 overflow-y-auto overscroll-contain"
+        className="scroll-thin min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]"
       >
         {props.isLoading ? (
           <ListSkeleton />
