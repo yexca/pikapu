@@ -6,7 +6,8 @@ the source of truth.
 
 ## Releases
 
-- [Unreleased](unreleased.md): the first version, planned as `v0.1.0`
+- [Unreleased](unreleased.md)
+- [v0.1.0](v0.1.0.md): the first release
 
 Each release gets a `<version>.md` page here; see
 [Commit and release](../development/commit-and-release.md).
