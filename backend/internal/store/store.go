@@ -116,6 +116,29 @@ var migrations = []string{
 	ALTER TABLE feeds ADD COLUMN affinity REAL NOT NULL DEFAULT 0;
 	ALTER TABLE feeds ADD COLUMN affinity_at INTEGER NOT NULL DEFAULT 0;
 	`,
+	// 5: the admin account and server-side sessions, replacing the
+	// password-derived signed cookies.
+	`
+	CREATE TABLE account (
+		id            INTEGER PRIMARY KEY CHECK (id = 1),
+		username      TEXT NOT NULL,
+		password_hash TEXT NOT NULL,
+		created_at    INTEGER NOT NULL,
+		updated_at    INTEGER NOT NULL
+	);
+
+	CREATE TABLE sessions (
+		id           INTEGER PRIMARY KEY,
+		token_hash   BLOB NOT NULL UNIQUE,
+		user_agent   TEXT NOT NULL DEFAULT '',
+		ip           TEXT NOT NULL DEFAULT '',
+		created_at   INTEGER NOT NULL,
+		last_seen_at INTEGER NOT NULL,
+		expires_at   INTEGER NOT NULL
+	);
+
+	DELETE FROM settings WHERE key = 'session_secret';
+	`,
 }
 
 func (s *Store) migrate(ctx context.Context) error {

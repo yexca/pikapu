@@ -32,14 +32,16 @@ to read them.
   kept).
 - Favicon discovery and caching.
 - OPML import and export.
-- Optional single-password sign-in.
+- A single admin account with a username and password, a first-run setup
+  token, server-side sessions that can be listed and signed out, and sign-in
+  rate limiting.
 - English and Simplified Chinese UI with English fallback.
 - Installable as an app (web app manifest), with the unread count on the icon
   where supported.
 
 ## Non-Goals
 
-- Multiple user accounts or sharing.
+- Multiple user accounts or sharing. There is exactly one admin account.
 - Full-text extraction of summary-only feeds (articles show what the feed
   provides; "Read original" opens the site).
 - Horizontal scaling or an external database.

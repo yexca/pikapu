@@ -1,18 +1,29 @@
 # HTTP API
 
 All endpoints are under `/api` and exchange JSON. Timestamps are RFC 3339
-strings. When a password is configured, every route except `healthz` and
+strings. In production mode (the default) every route except `healthz` and
 `auth/*` requires the session cookie and otherwise returns `401` with code
-`unauthorized`.
+`unauthorized`. In development mode no route requires it.
+
+State-changing requests that a browser marks as cross-origin are rejected
+with `403 cross_origin`. Setup, sign-in, and account changes are rate-limited
+per client; a throttled request gets `429 too_many_attempts` and a
+`Retry-After` header in seconds.
 
 ## Routes
 
 | Method and path | Purpose |
 | --- | --- |
 | `GET /healthz` | `{"status":"ok","version":"v0.1.0"}` |
-| `GET /auth/status` | `{"auth_required", "authenticated"}` |
-| `POST /auth/login` | `{"password"}` → sets the session cookie |
-| `POST /auth/logout` | Clears the session cookie |
+| `GET /auth/status` | `{"mode", "setup_required", "authenticated", "username"?}`; `mode` is `production` or `development`, `username` is present when signed in |
+| `POST /auth/setup` | `{"token", "username", "password"}` → `201 {"username"}`, creates the admin account with the logged setup token and signs in |
+| `POST /auth/login` | `{"username", "password"}` → `{"username"}`, sets the session cookie |
+| `POST /auth/logout` | Ends the current session and clears the cookie; `204` |
+| `GET /account` | `{"username", "created_at", "updated_at"}` |
+| `PUT /account` | `{"current_password", "username", "new_password"?}` → account; a new password signs out every other session |
+| `GET /account/sessions` | Unexpired sessions, most recent first: `[{"id", "user_agent", "ip", "created_at", "last_seen_at", "expires_at", "current"}]` |
+| `DELETE /account/sessions` | Signs out every session except the current one → `{"revoked"}` |
+| `DELETE /account/sessions/{id}` | Signs out one session; `204` |
 | `GET /categories` | List categories |
 | `POST /categories` | `{"name"}` |
 | `PUT /categories/order` | `{"ids": [...]}` |
@@ -71,7 +82,15 @@ Every error response has the same shape:
 | Code | Status | Meaning |
 | --- | --- | --- |
 | `unauthorized` | 401 | Sign-in required |
-| `invalid_password` | 401 | Wrong password |
+| `invalid_credentials` | 401 | Wrong username or password at sign-in |
+| `invalid_password` | 403 | Wrong current password when changing the account |
+| `invalid_setup_token` | 403 | Wrong or missing setup token |
+| `cross_origin` | 403 | Browser request from another origin |
+| `setup_required` | 409 | Sign-in attempted before the account exists |
+| `already_set_up` | 409 | Setup attempted after the account exists |
+| `too_many_attempts` | 429 | Too many failed credential checks; see `Retry-After` |
+| `invalid_username` | 400 | Username empty, longer than 64 characters, or with control characters |
+| `invalid_new_password` | 400 | New password shorter than 8 or longer than 128 characters |
 | `invalid_request` | 400 | Malformed JSON body |
 | `invalid_id` | 400 | Path id is not a positive integer |
 | `invalid_cursor` | 400 | Bad `cursor` parameter |

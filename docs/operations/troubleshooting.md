@@ -38,10 +38,36 @@ Failing feeds are retried with backoff and recover automatically.
 Some sites block hotlinked images. Pikapu already sends no `Referer`, which
 resolves most cases; the rest require opening the original article.
 
-## "Please sign in" after changing the password
+## "Please sign in" on other devices after changing the password
 
-Expected: changing `PIKAPU_PASSWORD` invalidates existing sessions. Sign in
-with the new password.
+Expected: a new password signs out every other device. Sign in there with
+the new password.
+
+## Where is the setup token?
+
+Pikapu prints it at every start while no account exists:
+`docker compose logs pikapu | grep setup_token`. If you set
+`PIKAPU_ADMIN_PASSWORD`, the account was created instead and there is no
+token; sign in with those credentials.
+
+## Forgot the password
+
+Run `docker exec pikapu pikapu reset-password` and sign in with the printed
+password.
+
+## "Too many attempts"
+
+Several failed sign-ins from one address make Pikapu wait before accepting
+another attempt, up to 15 minutes. Wait, or restart the container to clear
+the counters. If this happens to you behind a reverse proxy without anyone
+guessing, set `PIKAPU_TRUSTED_PROXIES` so clients are told apart (see
+[Docker](docker.md#reverse-proxy)).
+
+## Still asked for a password after upgrading
+
+`PIKAPU_PASSWORD` is no longer used. Use the setup token from the log to
+create the admin account, or set `PIKAPU_ADMIN_PASSWORD` and recreate the
+container.
 
 ## Starting over
 

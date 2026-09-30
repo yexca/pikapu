@@ -17,38 +17,6 @@ import (
 	"pikapu/internal/store"
 )
 
-// ---- auth ----
-
-func (h *handler) authStatus(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]bool{
-		"auth_required": h.auth.enabled(),
-		"authenticated": h.auth.authenticated(r),
-	})
-}
-
-func (h *handler) login(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Password string `json:"password"`
-	}
-	if !decodeJSON(w, r, &body) {
-		return
-	}
-	if h.auth.enabled() {
-		if !h.auth.checkPassword(body.Password) {
-			time.Sleep(500 * time.Millisecond)
-			writeError(w, http.StatusUnauthorized, "invalid_password", "incorrect password")
-			return
-		}
-		h.auth.setSession(w, r)
-	}
-	writeJSON(w, http.StatusOK, map[string]bool{"authenticated": true})
-}
-
-func (h *handler) logout(w http.ResponseWriter, r *http.Request) {
-	h.auth.clearSession(w, r)
-	w.WriteHeader(http.StatusNoContent)
-}
-
 // ---- categories ----
 
 func (h *handler) listCategories(w http.ResponseWriter, r *http.Request) {

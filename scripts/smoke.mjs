@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Runtime smoke test for a built image. Starts a disposable container with
-// password protection enabled, exercises the public HTTP contract, and
-// removes the container. Needs no outbound network access: the only feed it
+// Runtime smoke test for a built image. Starts a disposable container in
+// production mode without an account, creates the admin account with the
+// setup token from the log, exercises the public HTTP contract, and removes
+// the container. Needs no outbound network access: the only feed it
 // subscribes to uses the reserved .invalid domain, which never resolves.
 //
 // Usage: node scripts/smoke.mjs [image]   (default image: pikapu:dev)
@@ -12,6 +13,7 @@ import { spawnSync } from "node:child_process"
 const image = process.argv[2] ?? "pikapu:dev"
 const port = Number(process.env.PIKAPU_SMOKE_PORT ?? 17660)
 const base = `http://127.0.0.1:${port}`
+const username = "admin"
 const password = "synthetic-password"
 const container = `pikapu-smoke-${process.pid}`
 
@@ -26,9 +28,10 @@ function docker(args, { allowFail = false } = {}) {
 
 let cookie = ""
 
-async function call(method, path, { body, form, auth = true } = {}) {
-  const headers = {}
-  if (auth && cookie) headers.cookie = cookie
+async function call(method, path, { body, form, auth = true, as, headers: extra } = {}) {
+  const headers = { ...extra }
+  const session = as ?? cookie
+  if (auth && session) headers.cookie = session
   let payload
   if (form) {
     payload = form
@@ -45,6 +48,11 @@ async function call(method, path, { body, form, auth = true } = {}) {
     json = undefined
   }
   return { status: res.status, headers: res.headers, text, json }
+}
+
+function sessionCookie(res) {
+  const setCookie = res.headers.get("set-cookie") ?? ""
+  return { value: setCookie.split(";")[0], httpOnly: /httponly/i.test(setCookie) }
 }
 
 function check(name, ok, detail) {
@@ -79,6 +87,12 @@ async function run() {
 
   const index = await call("GET", "/")
   check("index serves the web app", index.status === 200 && index.text.includes('id="root"'))
+  const csp = index.headers.get("content-security-policy") ?? ""
+  check(
+    "the web app is served with a script-restricting CSP",
+    /script-src 'self' 'sha256-[^']+'/.test(csp) && csp.includes("object-src 'none'"),
+    csp
+  )
   const deep = await call("GET", "/feeds/1")
   check("client routes fall back to index.html", deep.status === 200 && deep.text.includes('id="root"'))
   const manifest = await call("GET", "/manifest.webmanifest", { auth: false })
@@ -98,14 +112,46 @@ async function run() {
     icons.map((r) => `${r.status} ${r.headers.get("content-type")}`).join(", ")
   )
 
+  const fresh = await call("GET", "/api/auth/status")
+  check(
+    "a fresh instance asks for setup in production mode",
+    fresh.json?.mode === "production" && fresh.json?.setup_required === true && fresh.json?.authenticated === false,
+    fresh.text
+  )
   const anon = await call("GET", "/api/feeds", { auth: false })
   check("API requires sign-in", anon.status === 401 && anon.json?.code === "unauthorized")
-  const wrong = await call("POST", "/api/auth/login", { body: { password: "wrong" } })
-  check("wrong password is rejected", wrong.status === 401 && wrong.json?.code === "invalid_password")
-  const login = await call("POST", "/api/auth/login", { body: { password } })
-  const setCookie = login.headers.get("set-cookie") ?? ""
-  cookie = setCookie.split(";")[0]
-  check("sign-in sets an HttpOnly session cookie", login.status === 200 && /httponly/i.test(setCookie))
+
+  const account = { username, password }
+  const badToken = await call("POST", "/api/auth/setup", { body: { ...account, token: "wrong" } })
+  check("setup rejects a wrong token", badToken.status === 403 && badToken.json?.code === "invalid_setup_token")
+  const token = await waitFor("the setup token in the log", 10_000, async () => {
+    const logs = docker(["logs", container])
+    return /setup_token=(\S+)/.exec(logs.stdout + logs.stderr)?.[1]
+  })
+  const setup = await call("POST", "/api/auth/setup", { body: { ...account, token } })
+  const setupCookie = sessionCookie(setup)
+  check("setup creates the account and signs in", setup.status === 201 && setupCookie.httpOnly, setup.text)
+  const again = await call("POST", "/api/auth/setup", { body: { ...account, token } })
+  check("setup only works once", again.status === 409 && again.json?.code === "already_set_up")
+
+  const wrong = await call("POST", "/api/auth/login", { body: { username, password: "wrong-password" } })
+  check("wrong password is rejected", wrong.status === 401 && wrong.json?.code === "invalid_credentials")
+  const login = await call("POST", "/api/auth/login", { body: account })
+  const loginCookie = sessionCookie(login)
+  cookie = loginCookie.value
+  check("sign-in sets an HttpOnly session cookie", login.status === 200 && loginCookie.httpOnly)
+
+  const sessions = await call("GET", "/api/account/sessions")
+  check(
+    "both sign-ins are listed as sessions",
+    sessions.status === 200 && sessions.json?.length === 2 && sessions.json.filter((s) => s.current).length === 1,
+    sessions.text
+  )
+  const crossSite = await call("POST", "/api/categories", {
+    body: { name: "Cross-site" },
+    headers: { origin: "http://attacker.example" },
+  })
+  check("cross-origin writes are rejected", crossSite.status === 403 && crossSite.json?.code === "cross_origin")
 
   const feeds = await call("GET", "/api/feeds")
   check("a fresh database has no feeds", feeds.status === 200 && feeds.json?.length === 0)
@@ -189,8 +235,32 @@ async function run() {
   const remaining = await call("GET", "/api/filters")
   check("filters can be deleted", removed.status === 204 && remaining.json?.length === 0)
 
+  const badCurrent = await call("PUT", "/api/account", {
+    body: { current_password: "wrong-password", username, new_password: "another-password" },
+  })
+  check(
+    "account changes require the current password",
+    badCurrent.status === 403 && badCurrent.json?.code === "invalid_password"
+  )
+  const changed = await call("PUT", "/api/account", {
+    body: { current_password: password, username, new_password: "another-password" },
+  })
+  check("the password can be changed", changed.status === 200 && changed.json?.username === username, changed.text)
+  const revoked = await call("GET", "/api/feeds", { as: setupCookie.value })
+  check("changing the password signs out other sessions", revoked.status === 401)
+
+  const reset = docker(["exec", container, "pikapu", "reset-password"])
+  const newPassword = /Password: (\S+)/.exec(reset.stdout)?.[1]
+  check("reset-password prints a new password", !!newPassword, reset.stdout)
+  const afterReset = await call("GET", "/api/feeds")
+  check("reset-password signs out every session", afterReset.status === 401)
+  const relogin = await call("POST", "/api/auth/login", { body: { username, password: newPassword } })
+  cookie = sessionCookie(relogin).value
+  check("the reset password signs in", relogin.status === 200)
+
   const logout = await call("POST", "/api/auth/logout")
-  check("sign-out succeeds", logout.status === 204)
+  const afterLogout = await call("GET", "/api/feeds")
+  check("sign-out ends the session", logout.status === 204 && afterLogout.status === 401)
 }
 
 async function main() {
@@ -199,7 +269,6 @@ async function main() {
     "run", "-d", "--rm",
     "--name", container,
     "-p", `127.0.0.1:${port}:7660`,
-    "-e", `PIKAPU_PASSWORD=${password}`,
     image,
   ])
   try {

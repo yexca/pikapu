@@ -8,7 +8,7 @@ Query, React Router, and i18next. Source in `frontend/src`.
 | Path | Contents |
 | --- | --- |
 | `main.tsx` | Providers: theme, locale sync, query client, tooltips, router, toasts |
-| `App.tsx` | Auth gate, app shell (sidebar + routes), refresh watcher |
+| `App.tsx` | Auth gate (setup page, sign-in page, or the app), app shell (sidebar + routes), refresh watcher |
 | `components/app-sidebar.tsx` | Navigation, categories, feeds, footer actions |
 | `components/entries-view.tsx` | Orchestrates the list and the reader for the current view in either layout: selection, keyboard shortcuts, auto mark-as-read |
 | `components/entry-list.tsx` | Classic list; the list header, search, and empty states shared with the hub |

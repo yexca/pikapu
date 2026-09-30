@@ -10,5 +10,8 @@ services:
       - ./data:/data
     # Optional settings are read from .env beside this file; see .env.example.
     environment:
-      PIKAPU_PASSWORD: ${PIKAPU_PASSWORD:-}
+      PIKAPU_MODE: ${PIKAPU_MODE:-production}
+      PIKAPU_ADMIN_USERNAME: ${PIKAPU_ADMIN_USERNAME:-}
+      PIKAPU_ADMIN_PASSWORD: ${PIKAPU_ADMIN_PASSWORD:-}
+      PIKAPU_TRUSTED_PROXIES: ${PIKAPU_TRUSTED_PROXIES:-}
       TZ: ${TZ:-UTC}

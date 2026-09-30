@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react"
 import { Navigate, Route, Routes, useLocation } from "react-router"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 
 import { AppSidebar } from "@/components/app-sidebar"
@@ -8,22 +8,23 @@ import { DialogsProvider } from "@/components/dialogs/dialogs-provider"
 import { EntriesView } from "@/components/entries-view"
 import { LoginPage } from "@/components/login-page"
 import { Logo } from "@/components/logo"
+import { SetupPage } from "@/components/setup-page"
 import { Button } from "@/components/ui/button"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { errorMessage } from "@/i18n/errors"
-import { api, setUnauthorizedHandler } from "@/lib/api"
-import { consumeUserRefresh, keys, useCounters } from "@/lib/queries"
+import { setUnauthorizedHandler } from "@/lib/api"
+import {
+  consumeUserRefresh,
+  keys,
+  useAuthStatus,
+  useCounters,
+} from "@/lib/queries"
 import type { AuthStatus } from "@/lib/types"
 
 export default function App() {
   const { t } = useTranslation()
   const qc = useQueryClient()
-  const auth = useQuery({
-    queryKey: keys.auth,
-    queryFn: api.authStatus,
-    staleTime: Infinity,
-    retry: 1,
-  })
+  const auth = useAuthStatus()
 
   useEffect(() => {
     setUnauthorizedHandler(() =>
@@ -56,7 +57,10 @@ export default function App() {
       </div>
     )
   }
-  if (auth.data.auth_required && !auth.data.authenticated) {
+  if (auth.data.setup_required) {
+    return <SetupPage />
+  }
+  if (!auth.data.authenticated) {
     return <LoginPage />
   }
   return <Shell />

@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
+	"pikapu/internal/auth"
 	"pikapu/internal/buildinfo"
 	"pikapu/internal/service"
 	"pikapu/internal/store"
@@ -20,22 +21,38 @@ import (
 type handler struct {
 	store *store.Store
 	svc   *service.Service
-	auth  *auth
+	auth  *authn
 	log   *slog.Logger
 }
 
 // New builds the HTTP handler serving the JSON API under /api and the
 // single-page frontend everywhere else.
-func New(ctx context.Context, st *store.Store, svc *service.Service, password string, web fs.FS, log *slog.Logger) (http.Handler, error) {
-	a, err := newAuth(ctx, st, password)
-	if err != nil {
-		return nil, err
+func New(ctx context.Context, st *store.Store, svc *service.Service, opts Options, web fs.FS, log *slog.Logger) (http.Handler, error) {
+	a := newAuthn(st, opts)
+	if !opts.Development {
+		exists, err := st.HasAccount(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			// Only someone who can read the server log can claim the instance.
+			a.setupToken = auth.RandomToken(18)
+			log.Warn("no admin account yet: open Pikapu and enter this setup token to create it",
+				"setup_token", a.setupToken)
+		}
 	}
 	h := &handler{store: st, svc: svc, auth: a, log: log}
+
+	// Rejects state-changing requests that browsers mark as cross-origin.
+	csrf := http.NewCrossOriginProtection()
+	csrf.SetDenyHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		writeError(w, http.StatusForbidden, "cross_origin", "cross-origin request rejected")
+	}))
 
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(securityHeaders)
+	r.Use(csrf.Handler)
 	r.Use(middleware.Compress(5, "application/json", "text/html", "text/css",
 		"text/javascript", "application/javascript", "image/svg+xml", "text/x-opml",
 		"application/manifest+json"))
@@ -45,11 +62,18 @@ func New(ctx context.Context, st *store.Store, svc *service.Service, password st
 			writeJSON(w, http.StatusOK, map[string]string{"status": "ok", "version": buildinfo.Version})
 		})
 		r.Get("/auth/status", h.authStatus)
+		r.Post("/auth/setup", h.setup)
 		r.Post("/auth/login", h.login)
 		r.Post("/auth/logout", h.logout)
 
 		r.Group(func(r chi.Router) {
 			r.Use(a.middleware)
+
+			r.Get("/account", h.getAccount)
+			r.Put("/account", h.updateAccount)
+			r.Get("/account/sessions", h.listSessions)
+			r.Delete("/account/sessions", h.deleteOtherSessions)
+			r.Delete("/account/sessions/{id}", h.deleteSession)
 
 			r.Get("/categories", h.listCategories)
 			r.Post("/categories", h.createCategory)

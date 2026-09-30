@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/alert-dialog"
 import type { Category, Feed } from "@/lib/types"
 
+import { AccountDialog } from "./account-dialog"
 import { AddFeedDialog } from "./add-feed-dialog"
 import { CategoryDialog } from "./category-dialog"
 import { EditFeedDialog } from "./edit-feed-dialog"
 import { FiltersDialog, type FiltersTarget } from "./filters-dialog"
+import { SessionsDialog } from "./sessions-dialog"
 import { SettingsDialog } from "./settings-dialog"
 import { ShortcutsDialog } from "./shortcuts-dialog"
 
@@ -36,6 +38,8 @@ interface DialogsApi {
   filters: (options?: { feedId?: number }) => void
   settings: () => void
   shortcuts: () => void
+  account: () => void
+  sessions: () => void
   confirm: (options: ConfirmOptions) => Promise<boolean>
 }
 
@@ -52,6 +56,8 @@ export function DialogsProvider({ children }: { children: React.ReactNode }) {
   const [addOpen, setAddOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
+  const [sessionsOpen, setSessionsOpen] = useState(false)
   const [edit, setEdit] = useState<Slot<Feed | null>>({
     open: false,
     value: null,
@@ -82,6 +88,8 @@ export function DialogsProvider({ children }: { children: React.ReactNode }) {
         })),
       settings: () => setSettingsOpen(true),
       shortcuts: () => setShortcutsOpen(true),
+      account: () => setAccountOpen(true),
+      sessions: () => setSessionsOpen(true),
       confirm: (options) =>
         new Promise<boolean>((resolve) => {
           resolveRef.current?.(false)
@@ -119,6 +127,8 @@ export function DialogsProvider({ children }: { children: React.ReactNode }) {
         onOpenChange={(open) => setFilters((s) => ({ ...s, open }))}
       />
       <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+      <AccountDialog open={accountOpen} onOpenChange={setAccountOpen} />
+      <SessionsDialog open={sessionsOpen} onOpenChange={setSessionsOpen} />
       <AlertDialog
         open={confirm.open}
         onOpenChange={(open) => !open && settle(false)}

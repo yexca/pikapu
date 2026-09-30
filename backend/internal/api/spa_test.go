@@ -1,8 +1,11 @@
 package api
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"testing/fstest"
 )
@@ -43,5 +46,22 @@ func TestSPAHandler(t *testing.T) {
 				t.Errorf("Cache-Control = %q, want %q", got, tt.cacheControl)
 			}
 		})
+	}
+}
+
+func TestSPAContentSecurityPolicy(t *testing.T) {
+	inline := "document.documentElement.classList.add('light')"
+	web := fstest.MapFS{"index.html": {Data: []byte(
+		"<script>" + inline + "</script><script type=\"module\" src=\"/assets/app.js\"></script>")}}
+	rec := httptest.NewRecorder()
+	spaHandler(web).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	csp := rec.Header().Get("Content-Security-Policy")
+	sum := sha256.Sum256([]byte(inline))
+	want := "script-src 'self' 'sha256-" + base64.StdEncoding.EncodeToString(sum[:]) + "';"
+	if !strings.Contains(csp, want) {
+		t.Errorf("CSP %q does not contain %q", csp, want)
+	}
+	if !strings.Contains(csp, "frame-src https://www.youtube.com") || !strings.Contains(csp, "object-src 'none'") {
+		t.Errorf("CSP %q is missing frame or object rules", csp)
 	}
 }

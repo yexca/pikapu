@@ -7,7 +7,11 @@ The Compose file in the repository builds that image locally.
 
 ```sh
 docker compose up -d --build
+docker compose logs pikapu | grep setup_token
 ```
+
+Open the app and enter the setup token to create the admin account, or set
+`PIKAPU_ADMIN_PASSWORD` in `.env` before the first start to skip this step.
 
 - Web app and API: <http://localhost:7660>
 - Data: `./data` on the host, mounted at `/data` (the database is
@@ -28,7 +32,10 @@ automatically; exported shell variables take precedence.
 | --- | --- | --- |
 | `PIKAPU_IMAGE` | `pikapu:latest` | Tag for the locally built image |
 | `PIKAPU_PORT` | `7660` | Host port mapped to the container's port 7660 |
-| `PIKAPU_PASSWORD` | empty | Enables sign-in when set |
+| `PIKAPU_MODE` | `production` | `development` turns sign-in off; local use only |
+| `PIKAPU_ADMIN_USERNAME` | `admin` | Username for the bootstrap account |
+| `PIKAPU_ADMIN_PASSWORD` | empty | Creates the admin account on first start |
+| `PIKAPU_TRUSTED_PROXIES` | empty | Reverse proxy addresses allowed to set `X-Forwarded-For` |
 | `TZ` | `UTC` | Time zone for log timestamps |
 
 After editing `.env`, apply it by recreating the container:
@@ -54,16 +61,36 @@ ports:
 ## Reverse Proxy
 
 Pikapu serves everything from one origin, so a reverse proxy only needs to
-forward all paths to port 7660. Forward `X-Forwarded-Proto: https` when the
-proxy terminates TLS; Pikapu then marks the session cookie `Secure`.
+forward all paths to port 7660. Forward:
+
+- `Host`, unchanged, so cross-origin protection can compare it with `Origin`;
+- `X-Forwarded-Proto: https` when the proxy terminates TLS, so the session
+  cookie is `Secure`;
+- `X-Forwarded-For`, and list the proxy's address in
+  `PIKAPU_TRUSTED_PROXIES`, so sign-in rate limiting sees client addresses.
 
 ```nginx
 location / {
     proxy_pass http://127.0.0.1:7660;
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
 ```
+
+With the proxy on the host and the container's port mapped as above, the
+proxy reaches Pikapu through Docker's bridge gateway; trust it with, for
+example, `PIKAPU_TRUSTED_PROXIES=172.16.0.0/12`. With the proxy in another
+container on the same network, trust that network's range.
+
+## Reset the Password
+
+```sh
+docker exec pikapu pikapu reset-password
+```
+
+It prints the username and a new random password and signs out every
+device. Change the password in Settings afterwards.
 
 ## Upgrade
 

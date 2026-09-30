@@ -19,8 +19,18 @@ make frontend-dev     # Vite dev server on :5173, proxies /api to :7660
 ```
 
 Open <http://localhost:5173>. Frontend changes hot-reload; restart
-`backend-run` after Go changes. Set `PIKAPU_PASSWORD` in the backend's
-environment to work on the sign-in flow.
+`backend-run` after Go changes.
+
+`make backend-run` starts the server in development mode, which turns
+sign-in off so previews open straight into the reader. To work on the setup
+and sign-in pages, run it in production mode and use the setup token from its
+output:
+
+```sh
+PIKAPU_MODE=production make backend-run
+```
+
+The Docker image and Compose file always default to production mode.
 
 To run the production build instead:
 

@@ -7,10 +7,11 @@ Go module `pikapu` in `backend/`. Router: chi. Database driver:
 
 | Package | Responsibility |
 | --- | --- |
-| `cmd/pikapu` | Composition root: config, store, service, HTTP server, graceful shutdown, `healthcheck` subcommand |
+| `cmd/pikapu` | Composition root: config, account bootstrap, store, service, HTTP server, graceful shutdown, `healthcheck` and `reset-password` subcommands |
 | `internal/config` | Environment variables |
+| `internal/auth` | Admin account rules without HTTP: Argon2id password hashing, username and password validation, the sign-in rate limiter, creating the account from the environment, resetting the password |
 | `internal/buildinfo` | Version injected at link time from `VERSION` |
-| `internal/api` | Routes, JSON helpers, error contract, password auth, SPA file serving |
+| `internal/api` | Routes, JSON helpers, error contract, sessions and account endpoints, cross-origin protection, SPA file serving and its CSP |
 | `internal/service` | Adding feeds, refresh orchestration and scheduling, retention cleanup, favicon lookup, OPML import/export |
 | `internal/fetcher` | HTTP fetching, feed discovery, item conversion, HTML sanitizing, favicon discovery, error classification |
 | `internal/filter` | Keyword filter matching: compiles `store.Filter` rows into a triage function for new entries |
@@ -20,8 +21,8 @@ Go module `pikapu` in `backend/`. Router: chi. Database driver:
 | `web` | `go:embed` of the frontend build (`web/dist`) |
 
 Dependencies point downward: `api → service → filter → fetcher → store`,
-and `api → recommend → store`. `store` and `fetcher` never import `api`,
-`service`, `filter`, or `recommend`.
+`api → recommend → store`, and `api → auth → store`. `store` and `fetcher`
+never import `api`, `service`, `filter`, `recommend`, or `auth`.
 
 ## Refresh Pipeline
 
@@ -123,6 +124,39 @@ code (`fetch_timeout`, `fetch_dns`, `fetch_http`, `fetch_parse`,
 
 ## Authentication
 
-`internal/api/auth.go` implements the optional password. Session cookies hold
-an expiry and an HMAC-SHA256 signature over the expiry and a hash of the
-password, keyed by a 32-byte secret stored in the `settings` table.
+See [ADR-0004](../decisions/ADR-0004-admin-account.md) for the reasoning.
+
+- **Modes.** `PIKAPU_MODE=production` (the default) requires sign-in for
+  every `/api` route except `healthz` and `auth/*`. `development` lets every
+  request through; `auth/status` reports `mode: "development"` so the UI
+  skips the sign-in page.
+- **Account.** One row in `account` holds the username and a PHC-encoded
+  Argon2id hash (19 MiB, 2 passes, 1 lane; parameters are read back from the
+  hash). Usernames compare case-insensitively. The account is never cached in
+  memory, so `pikapu reset-password` in a second process takes effect at once.
+- **First run.** At startup, `auth.EnsureAccount` creates the account from
+  `PIKAPU_ADMIN_USERNAME` / `PIKAPU_ADMIN_PASSWORD` if none exists. Otherwise
+  `api.New` generates a random setup token, logs it as `setup_token=…`, and
+  keeps it in memory; `POST /auth/setup` requires it and works once.
+- **Sessions.** Signing in stores the SHA-256 of a random 32-byte token in
+  `sessions` and sets the token as an `HttpOnly`, `SameSite=Lax` cookie
+  (`__Host-pikapu_session` over HTTPS, `pikapu_session` otherwise). Each
+  request looks the token up; activity is written back at most hourly, which
+  also extends the 30-day idle expiry. Signing out deletes the row, and a
+  password change deletes every other session in the same transaction.
+- **Rate limiting.** `auth.Limiter` counts failed setup, sign-in, and
+  current-password checks per client IP: five free failures, then waits of
+  30 s doubling to 15 min, forgotten after an hour without failures. A global
+  budget of 50 failures refilling one per 6 s caps guessing across addresses.
+  Throttled requests get `429 too_many_attempts` with `Retry-After`. The
+  client IP is the socket peer unless that peer is in
+  `PIKAPU_TRUSTED_PROXIES`, in which case the nearest untrusted
+  `X-Forwarded-For` hop is used.
+- **Cross-origin requests.** `http.CrossOriginProtection` rejects
+  state-changing requests that browsers mark as cross-origin
+  (`Sec-Fetch-Site`, or an `Origin` that does not match `Host`) with
+  `403 cross_origin`. Non-browser clients that send neither header pass.
+- **Content Security Policy.** `index.html` is served with a CSP that allows
+  scripts only from the app's origin plus the SHA-256 of each inline script
+  in the built page, frames only from `fetcher.EmbedOrigins`, and no plugins.
+  Images and media may load from anywhere, as feed articles need.

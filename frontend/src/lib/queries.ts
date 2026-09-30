@@ -13,6 +13,8 @@ import { errorMessage, feedErrorMessage } from "@/i18n/errors"
 
 import { api } from "./api"
 import type {
+  AccountInput,
+  AuthStatus,
   Counters,
   Entry,
   EntryFilter,
@@ -25,6 +27,8 @@ import type {
 
 export const keys = {
   auth: ["auth"] as const,
+  account: ["account"] as const,
+  sessions: ["account", "sessions"] as const,
   categories: ["categories"] as const,
   feeds: ["feeds"] as const,
   counters: ["counters"] as const,
@@ -36,6 +40,15 @@ export const keys = {
   // star updates, lookups, and invalidations cover picks too.
   picks: (scope: EntryFilter) => ["entries", "picks", scope] as const,
   entry: (id: number) => ["entry", id] as const,
+}
+
+export function useAuthStatus() {
+  return useQuery({
+    queryKey: keys.auth,
+    queryFn: api.authStatus,
+    staleTime: Infinity,
+    retry: 1,
+  })
 }
 
 export function useCategories() {
@@ -398,6 +411,75 @@ export function useImportOpml() {
         )
       }
       toast.success(i18n.t("settings.importResult", res))
+    },
+    onError: (err) => toast.error(errorMessage(err)),
+  })
+}
+
+/** Marks the browser signed in and reloads everything else. */
+export function markSignedIn(qc: QueryClient, username: string) {
+  qc.setQueryData<AuthStatus>(keys.auth, (s) =>
+    s ? { ...s, setup_required: false, authenticated: true, username } : s
+  )
+  qc.invalidateQueries({ predicate: (q) => q.queryKey[0] !== keys.auth[0] })
+}
+
+/** Marks the browser signed out and drops all cached data. */
+export function markSignedOut(qc: QueryClient) {
+  qc.setQueryData<AuthStatus>(keys.auth, (s) =>
+    s ? { ...s, authenticated: false, username: undefined } : s
+  )
+  qc.removeQueries({ predicate: (q) => q.queryKey[0] !== keys.auth[0] })
+}
+
+export function useAccount() {
+  return useQuery({ queryKey: keys.account, queryFn: api.account })
+}
+
+export function useUpdateAccount() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: AccountInput) => api.updateAccount(input),
+    onSuccess: (account, input) => {
+      qc.setQueryData(keys.account, account)
+      qc.setQueryData<AuthStatus>(
+        keys.auth,
+        (s) => s && { ...s, username: account.username }
+      )
+      if (input.new_password) {
+        qc.invalidateQueries({ queryKey: keys.sessions })
+      }
+      toast.success(
+        i18n.t(input.new_password ? "account.passwordChanged" : "account.saved")
+      )
+    },
+  })
+}
+
+export function useSessions(enabled = true) {
+  return useQuery({
+    queryKey: keys.sessions,
+    queryFn: api.sessions,
+    enabled,
+  })
+}
+
+export function useRevokeSession() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.revokeSession(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: keys.sessions }),
+    onError: (err) => toast.error(errorMessage(err)),
+  })
+}
+
+export function useRevokeOtherSessions() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.revokeOtherSessions(),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: keys.sessions })
+      toast.success(i18n.t("sessions.revoked", { count: res.revoked }))
     },
     onError: (err) => toast.error(errorMessage(err)),
   })

@@ -1,4 +1,6 @@
 import type {
+  Account,
+  AccountInput,
   AuthStatus,
   Category,
   Counters,
@@ -8,6 +10,7 @@ import type {
   Feed,
   Filter,
   FilterInput,
+  Session,
   Settings,
 } from "./types"
 
@@ -81,9 +84,23 @@ function filterParams(f: EntryFilter): Record<string, string> {
 
 export const api = {
   authStatus: () => request<AuthStatus>("GET", "/auth/status"),
-  login: (password: string) =>
-    request<{ authenticated: boolean }>("POST", "/auth/login", { password }),
+  setup: (input: { token: string; username: string; password: string }) =>
+    request<{ username: string }>("POST", "/auth/setup", input),
+  login: (username: string, password: string) =>
+    request<{ username: string }>("POST", "/auth/login", {
+      username,
+      password,
+    }),
   logout: () => request<void>("POST", "/auth/logout"),
+
+  account: () => request<Account>("GET", "/account"),
+  updateAccount: (input: AccountInput) =>
+    request<Account>("PUT", "/account", input),
+  sessions: () => request<Session[]>("GET", "/account/sessions"),
+  revokeSession: (id: number) =>
+    request<void>("DELETE", `/account/sessions/${id}`),
+  revokeOtherSessions: () =>
+    request<{ revoked: number }>("DELETE", "/account/sessions"),
 
   categories: () => request<Category[]>("GET", "/categories"),
   createCategory: (name: string) =>

@@ -73,8 +73,37 @@ export interface Settings {
 }
 
 export interface AuthStatus {
-  auth_required: boolean
+  /** "development" disables sign-in; production is the default. */
+  mode: "production" | "development"
+  /** No admin account exists yet: show the setup page. */
+  setup_required: boolean
   authenticated: boolean
+  username?: string
+}
+
+export interface Account {
+  username: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AccountInput {
+  current_password: string
+  username: string
+  /** Empty keeps the current password. */
+  new_password?: string
+}
+
+/** A signed-in browser. */
+export interface Session {
+  id: number
+  user_agent: string
+  ip: string
+  created_at: string
+  last_seen_at: string
+  expires_at: string
+  /** The session making this request. */
+  current: boolean
 }
 
 /** Which slice of entries the list is showing. */

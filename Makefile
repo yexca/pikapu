@@ -78,8 +78,10 @@ backend-coverage: ## Run backend tests locally with a coverage summary
 backend-build: ## Build the backend binary to backend/bin (serves an embedded frontend only if built)
 	cd backend && $(GO) build -ldflags "$(LDFLAGS)" -o bin/pikapu ./cmd/pikapu
 
-backend-run: ## Run the backend locally on :7660 with data in ./data
-	cd backend && PIKAPU_DATA_DIR=../data $(GO) run -ldflags "$(LDFLAGS)" ./cmd/pikapu
+# Development mode turns sign-in off for local previews; run with
+# PIKAPU_MODE=production to work on the sign-in and setup flows.
+backend-run: ## Run the backend locally on :7660 with data in ./data (sign-in off by default)
+	cd backend && PIKAPU_DATA_DIR=../data PIKAPU_MODE=$${PIKAPU_MODE:-development} $(GO) run -ldflags "$(LDFLAGS)" ./cmd/pikapu
 
 .PHONY: frontend-install frontend-dev frontend-lint frontend-format frontend-build
 frontend-install: ## Install frontend dependencies from the lockfile

@@ -36,19 +36,23 @@ host toolchain do not replace the Docker targets.
 
 ## Smoke Test
 
-`scripts/smoke.mjs` starts the image with a synthetic password on
+`scripts/smoke.mjs` starts the image in production mode without an account on
 `127.0.0.1:17660` (override with `PIKAPU_SMOKE_PORT`) and verifies:
 
 - health check and version
-- SPA serving and client-route fallback
+- SPA serving, the Content Security Policy, and client-route fallback
 - the public web app manifest and its icons
-- the auth boundary, a wrong password, and the session cookie
+- setup with the logged token (a wrong token, success, only once), the auth
+  boundary, a wrong password, the session cookie, the session list, and
+  rejection of cross-origin writes
 - category creation and case-insensitive uniqueness
 - settings and URL validation error codes
 - OPML import, the background fetch of a `.invalid` feed failing with a
   `fetch_*` code, and OPML export
 - filter validation codes, creation, applying, and deletion
 - recommendations behind the auth boundary
+- changing the password (current password required, other sessions signed
+  out) and `pikapu reset-password` inside the container
 - sign-out
 
 It needs no outbound network access, and it prints the container logs when a

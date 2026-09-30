@@ -45,5 +45,11 @@ Import or export subscriptions as OPML. See
 
 ## Account
 
-When the instance has a password, **Sign out** ends the session in this
-browser. Sessions last 30 days.
+- **Edit** changes your username or password. Confirm with your current
+  password. A new password signs out all your other devices.
+- **Devices** lists the browsers signed in to Pikapu, with when each was last
+  used. Sign out one of them, or all but this one.
+- **Sign out** ends the session in this browser.
+
+A device stays signed in until it goes 30 days without use. When the server
+runs in development mode, this section only says that sign-in is off.

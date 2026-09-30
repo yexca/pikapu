@@ -19,8 +19,8 @@ backend with an embedded React frontend and a SQLite database, served on one
 port.
 
 > [!IMPORTANT]
-> Pikapu is early software. Back up `data/` before upgrading, and set
-> `PIKAPU_PASSWORD` before exposing an instance beyond your own machine.
+> Pikapu is early software. Back up `data/` before upgrading. Put it behind a
+> reverse proxy with TLS before exposing it to the internet.
 
 ## Key Features
 
@@ -44,7 +44,9 @@ port.
 - **Portable subscriptions.** OPML import and export.
 - **English and Simplified Chinese.** The UI follows your browser language and
   falls back to English; you can also choose a language in Settings.
-- **Optional password.** One environment variable enables sign-in.
+- **Admin account.** Sign-in with a username and password stored as an
+  Argon2id hash, a list of signed-in devices you can sign out, and rate
+  limiting of failed attempts.
 
 ## Quick Start
 
@@ -56,10 +58,18 @@ cd pikapu
 docker compose up -d --build
 ```
 
-Open <http://localhost:7660>, click **+**, and add your first feed.
+On first start Pikapu prints a one-time setup token to its log:
 
-To require a password, copy [`.env.example`](.env.example) to `.env`, set
-`PIKAPU_PASSWORD`, and run `docker compose up -d` again. See
+```sh
+docker compose logs pikapu | grep setup_token
+```
+
+Open <http://localhost:7660>, enter the token, and create the admin account.
+Then click **+** and add your first feed.
+
+To create the account without the token instead, copy
+[`.env.example`](.env.example) to `.env`, set `PIKAPU_ADMIN_USERNAME` and
+`PIKAPU_ADMIN_PASSWORD` before the first start. See
 [Configuration](docs/operations/configuration.md) for every option.
 
 The default port mapping listens on all host interfaces. Bind it to
@@ -74,7 +84,7 @@ the instance should not be reachable from your network. See
 | `./data` | `/data` | SQLite database (`pikapu.db`, plus `-wal` / `-shm` files) | Yes |
 
 Do not commit `data/` or `.env`; they contain your subscriptions, reading
-history, and session secret.
+history, account, and sessions.
 
 ## Documentation
 

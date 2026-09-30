@@ -438,3 +438,58 @@ func TestRecentUnreadWindowAndScope(t *testing.T) {
 		t.Fatalf("all feeds: got %d entries, want 4", len(all))
 	}
 }
+
+func TestAccountAndSessions(t *testing.T) {
+	ctx := context.Background()
+	s := openTest(t)
+
+	if _, err := s.GetAccount(ctx); err != ErrNotFound {
+		t.Fatalf("GetAccount on a fresh database: %v", err)
+	}
+	if err := s.CreateAccount(ctx, "admin", "hash-1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.CreateAccount(ctx, "second", "hash-2"); err != ErrConflict {
+		t.Fatalf("second account: err = %v, want ErrConflict", err)
+	}
+
+	now := time.Now()
+	a, _ := s.CreateSession(ctx, []byte("token-a"), "Browser A", "192.0.2.1", now.Add(time.Hour))
+	b, _ := s.CreateSession(ctx, []byte("token-b"), "Browser B", "192.0.2.2", now.Add(time.Hour))
+	if _, err := s.CreateSession(ctx, []byte("token-old"), "", "", now.Add(-time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := s.SessionByToken(ctx, []byte("token-a"), now); err != nil || got.ID != a.ID {
+		t.Fatalf("SessionByToken: %+v, %v", got, err)
+	}
+	if _, err := s.SessionByToken(ctx, []byte("token-old"), now); err != ErrNotFound {
+		t.Fatalf("expired session found: %v", err)
+	}
+	if list, _ := s.ListSessions(ctx, now); len(list) != 2 {
+		t.Fatalf("ListSessions returned %d, want the 2 unexpired", len(list))
+	}
+
+	// Renaming keeps sessions; a new password signs out all but the caller.
+	if err := s.UpdateAccount(ctx, "reader", "", a.ID); err != nil {
+		t.Fatal(err)
+	}
+	if list, _ := s.ListSessions(ctx, now); len(list) != 2 {
+		t.Fatal("renaming signed sessions out")
+	}
+	if err := s.UpdateAccount(ctx, "reader", "hash-3", a.ID); err != nil {
+		t.Fatal(err)
+	}
+	acct, _ := s.GetAccount(ctx)
+	if acct.Username != "reader" || acct.PasswordHash != "hash-3" {
+		t.Fatalf("account not updated: %+v", acct)
+	}
+	if _, err := s.SessionByToken(ctx, []byte("token-b"), now); err != ErrNotFound {
+		t.Fatalf("other session survived a password change: %v", err)
+	}
+	if _, err := s.SessionByToken(ctx, []byte("token-a"), now); err != nil {
+		t.Fatalf("current session was removed: %v", err)
+	}
+	if err := s.DeleteSession(ctx, b.ID); err != ErrNotFound {
+		t.Fatalf("deleting a removed session: %v", err)
+	}
+}

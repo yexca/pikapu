@@ -11,26 +11,32 @@ current main branch. Older builds are not supported.
 
 ## Security Model
 
-- **Access control.** Without `PIKAPU_PASSWORD`, anyone who can reach the port
-  can read and change everything. With it, every API route except the health
-  check and sign-in requires a session cookie signed with a per-installation
-  secret. Changing the password invalidates existing sessions.
+- **Access control.** One admin account protects every API route except the
+  health check and the sign-in and setup endpoints. Until the account exists,
+  it can only be created with a setup token printed to the server log.
+  Sessions are random tokens stored hashed on the server and can be revoked;
+  changing the password signs out other devices. Failed sign-ins are
+  rate-limited. `PIKAPU_MODE=development` turns all of this off and is meant
+  only for local development.
 - **Untrusted feeds.** Feed documents, article HTML, images, favicons, and
   redirects come from third parties. Article HTML is sanitized on the server
   before the browser renders it; only allowlisted video embeds are kept.
 - **Outbound requests.** Pikapu fetches whatever feed URLs the operator
   subscribes to, including private network addresses. Treat the ability to add
   feeds as trusted, operator-level access.
-- **Data.** Subscriptions, articles, reading state, and the session secret are
-  stored in `data/pikapu.db`. Protect and back up that directory.
+- **Data.** Subscriptions, articles, reading state, the account's password
+  hash, and session token hashes are stored in `data/pikapu.db`. Protect and
+  back up that directory.
 
-In scope: authentication bypass, script execution from feed content (XSS),
-session forgery, leaking data to unauthenticated clients, or crashes and
-resource exhaustion triggered by feed content.
+In scope: authentication bypass, claiming an instance without the setup
+token, script execution from feed content (XSS), session forgery or
+fixation, cross-site request forgery, bypassing the sign-in rate limit,
+leaking data to unauthenticated clients, or crashes and resource exhaustion
+triggered by feed content.
 
-Out of scope: attacks that require the password, instances deployed without a
-password on an untrusted network, and requests to addresses the operator
-subscribed to deliberately.
+Out of scope: attacks that require the password or access to the server log
+or `data/`, instances running in development mode, and requests to addresses
+the operator subscribed to deliberately.
 
 ## Reporting a Vulnerability
 

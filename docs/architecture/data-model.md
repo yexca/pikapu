@@ -66,8 +66,30 @@ Filters only act when an entry is first stored (see
 
 ### `settings`
 
-Key/value pairs: `refresh_interval_minutes`, `retention_days`, and
-`session_secret` (only when a password is configured).
+Key/value pairs: `refresh_interval_minutes` and `retention_days`.
+
+### `account`
+
+At most one row (`id` is constrained to 1).
+
+| Column | Notes |
+| --- | --- |
+| `username` | Compared case-insensitively on sign-in |
+| `password_hash` | PHC string, `$argon2id$v=19$m=…,t=…,p=…$<salt>$<hash>` |
+| `created_at`, `updated_at` | |
+
+### `sessions`
+
+| Column | Notes |
+| --- | --- |
+| `id` | Primary key |
+| `token_hash` | SHA-256 of the cookie token; unique. The token itself is never stored |
+| `user_agent` | Up to 256 bytes, for the device list |
+| `ip` | Client address at sign-in, updated with activity |
+| `created_at`, `last_seen_at` | `last_seen_at` is written at most hourly |
+| `expires_at` | 30 days after `last_seen_at` |
+
+Expired rows are ignored by lookups and deleted when a new session starts.
 
 ## Migrations
 
@@ -81,6 +103,7 @@ transaction on startup.
 | 2 | `feeds.last_error_code` |
 | 3 | `filters` table |
 | 4 | `feeds.affinity`, `feeds.affinity_at` |
+| 5 | `account` and `sessions` tables; removes the old `session_secret` setting |
 
 Released migrations are immutable. Add a schema change as the next entry;
 never edit or reorder existing ones.

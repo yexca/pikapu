@@ -5,9 +5,11 @@ import {
   Columns3Icon,
   DownloadIcon,
   InboxIcon,
+  KeyRoundIcon,
   ListFilterIcon,
   LogOutIcon,
   MonitorIcon,
+  MonitorSmartphoneIcon,
   MoonIcon,
   SunIcon,
   UploadIcon,
@@ -35,12 +37,12 @@ import { LOCALES, type LocalePreference } from "@/i18n"
 import { api, opmlExportUrl } from "@/lib/api"
 import { usePrefs, type Prefs } from "@/lib/prefs"
 import {
-  keys,
+  markSignedOut,
+  useAuthStatus,
   useImportOpml,
   useSaveSettings,
   useSettings,
 } from "@/lib/queries"
-import type { AuthStatus } from "@/lib/types"
 
 import { useDialogs } from "./dialogs-provider"
 
@@ -154,7 +156,7 @@ function SettingsBody() {
   const importOpml = useImportOpml()
   const dialogs = useDialogs()
   const fileRef = useRef<HTMLInputElement>(null)
-  const auth = qc.getQueryData<AuthStatus>(keys.auth)
+  const auth = useAuthStatus().data
 
   const saveSetting = (patch: Partial<NonNullable<typeof settings.data>>) => {
     if (settings.data) save.mutate({ ...settings.data, ...patch })
@@ -173,12 +175,7 @@ function SettingsBody() {
 
   const logout = async () => {
     await api.logout().catch(() => {})
-    qc.setQueryData<AuthStatus>(keys.auth, (s) =>
-      s ? { ...s, authenticated: false } : s
-    )
-    qc.removeQueries({
-      predicate: (q) => q.queryKey[0] !== keys.auth[0],
-    })
+    markSignedOut(qc)
   }
 
   return (
@@ -349,16 +346,51 @@ function SettingsBody() {
         </Row>
       </Section>
 
-      {auth?.auth_required && (
-        <Section title={t("settings.account")}>
-          <Row title={t("settings.signOut")}>
-            <Button variant="outline" size="sm" onClick={logout}>
-              <LogOutIcon />
-              {t("settings.signOut")}
-            </Button>
+      <Section title={t("settings.account")}>
+        {auth?.mode === "development" ? (
+          <Row
+            title={t("settings.devMode")}
+            description={t("settings.devModeHint")}
+          >
+            {null}
           </Row>
-        </Section>
-      )}
+        ) : (
+          <>
+            <Row
+              title={t("settings.signedInAs", { username: auth?.username })}
+              description={t("settings.accountHint")}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => dialogs.account()}
+              >
+                <KeyRoundIcon />
+                {t("settings.editAccount")}
+              </Button>
+            </Row>
+            <Row
+              title={t("settings.devices")}
+              description={t("settings.devicesHint")}
+            >
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => dialogs.sessions()}
+              >
+                <MonitorSmartphoneIcon />
+                {t("settings.manageDevices")}
+              </Button>
+            </Row>
+            <Row title={t("settings.signOut")}>
+              <Button variant="outline" size="sm" onClick={logout}>
+                <LogOutIcon />
+                {t("settings.signOut")}
+              </Button>
+            </Row>
+          </>
+        )}
+      </Section>
 
       <p className="text-center text-xs text-muted-foreground">
         {t("settings.about", { version: __APP_VERSION__ })}

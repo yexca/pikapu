@@ -8,9 +8,17 @@ Pikapu runs with Docker Compose. From a checkout of the repository:
 docker compose up -d --build
 ```
 
-Open <http://localhost:7660>. The first screen is an empty reader with a
-sidebar on the left. If the instance was started with `PIKAPU_PASSWORD`, sign
-in first. See [Docker](../operations/docker.md) for deployment details.
+Open <http://localhost:7660>. On the first visit Pikapu asks for a setup
+token and the username and password you want. The token is in the server
+log:
+
+```sh
+docker compose logs pikapu | grep setup_token
+```
+
+After that, sign in with your username and password. The first screen is an
+empty reader with a sidebar on the left. See
+[Docker](../operations/docker.md) for deployment details.
 
 ## Add Your First Feed
 

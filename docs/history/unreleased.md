@@ -33,7 +33,19 @@ Planned as `v0.1.0`, the first release.
 ## Operations
 
 - Single Docker image serving the app and API on port 7660.
-- Optional password protection with signed session cookies.
+- Admin account for internet-facing instances: username and Argon2id-hashed
+  password, created with a one-time setup token from the log or with
+  `PIKAPU_ADMIN_USERNAME` / `PIKAPU_ADMIN_PASSWORD`; editable in Settings.
+  Replaces `PIKAPU_PASSWORD`, which is no longer read.
+- Server-side sessions: a device list in Settings, signing out one or all
+  other devices, and signing out other devices when the password changes.
+- Sign-in rate limiting per client and overall, with
+  `PIKAPU_TRUSTED_PROXIES` for reverse proxies.
+- Cross-origin request protection and a Content Security Policy for the app.
+- `pikapu reset-password` for a forgotten password.
+- `PIKAPU_MODE`: `production` (default) requires sign-in; `development`
+  turns it off for local previews and is the default for
+  `make backend-run`.
 - Health check subcommand and `/api/healthz` with the version.
 
 ## Development

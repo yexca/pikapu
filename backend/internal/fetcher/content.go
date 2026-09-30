@@ -18,6 +18,16 @@ var (
 	policy    = newPolicy()
 )
 
+// EmbedOrigins are the origins iframeRe allows, for the app's
+// Content-Security-Policy. Keep the two in step.
+var EmbedOrigins = []string{
+	"https://www.youtube.com",
+	"https://www.youtube-nocookie.com",
+	"https://youtube.com",
+	"https://player.vimeo.com",
+	"https://player.bilibili.com",
+}
+
 func newPolicy() *bluemonday.Policy {
 	p := bluemonday.UGCPolicy()
 	p.AllowElements("picture", "figure", "figcaption", "mark", "details", "summary", "time")

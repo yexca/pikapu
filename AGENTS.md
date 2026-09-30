@@ -20,8 +20,12 @@ Pikapu is a single-user, self-hosted RSS reader shipped as one container.
   runtime process.
 - SQLite is the only datastore, and the deployment is single-instance. Do not
   add features that assume multiple writers, users, or replicas.
-- Access control is one optional password (`PIKAPU_PASSWORD`). Every `/api`
-  route except `healthz` and `auth/*` must stay behind the auth middleware.
+- Access control is one admin account with server-side sessions (ADR-0004).
+  Every `/api` route except `healthz` and `auth/*` must stay behind the auth
+  middleware. `PIKAPU_MODE` defaults to `production`; `development` turns
+  sign-in off for local previews only. Keep production the default everywhere
+  an image or Compose file is involved, and do not add other ways to skip
+  sign-in.
 - Per-browser preferences (theme, language, text size, list filters) live in
   `localStorage`. Server-wide settings (refresh interval, retention) live in the
   `settings` table.
@@ -62,10 +66,11 @@ untrusted input.
 
 - Backend: `cmd/pikapu` composes `internal/api` (HTTP), `internal/service`
   (refresh scheduling, OPML), `internal/filter` (keyword filter matching),
-  `internal/recommend` (ranking hub picks), `internal/fetcher` (network,
-  parsing, sanitizing), and `internal/store` (SQLite). Dependencies point
-  downward; `store` and `fetcher` must not import `api`, `service`, `filter`,
-  or `recommend`.
+  `internal/recommend` (ranking hub picks), `internal/auth` (password
+  hashing, sign-in rate limiting, account bootstrap), `internal/fetcher`
+  (network, parsing, sanitizing), and `internal/store` (SQLite). Dependencies
+  point downward; `store` and `fetcher` must not import `api`, `service`,
+  `filter`, `recommend`, or `auth`.
 - Frontend: components under `src/components`, generated shadcn/ui primitives
   under `src/components/ui`, data access in `src/lib` (API client, TanStack
   Query hooks), translations in `src/i18n`. Prefer adding shadcn components

@@ -31,6 +31,8 @@ internal/fetcher ──HTTP──▶ feed sites, web pages, favicons
   ([ADR-0002](../decisions/ADR-0002-sqlite-pure-go.md)).
 - The backend speaks English with stable error codes; the frontend localizes
   ([ADR-0003](../decisions/ADR-0003-localize-in-frontend.md)).
+- One admin account with server-side sessions; sign-in is always on outside
+  development mode ([ADR-0004](../decisions/ADR-0004-admin-account.md)).
 
 ## When To Read What
 

@@ -4,25 +4,51 @@ See [SECURITY.md](../../SECURITY.md) for the security model and reporting.
 
 ## Checklist
 
-- **Set a password** with `PIKAPU_PASSWORD` unless the port is reachable only
-  from your own machine.
-- **Limit exposure.** Bind the port to `127.0.0.1`, use a VPN, or put Pikapu
-  behind a reverse proxy.
+- **Create the admin account right after the first start**, or set
+  `PIKAPU_ADMIN_PASSWORD` before it. Until the account exists, only someone
+  who can read the server log can claim the instance.
+- **Keep production mode.** `PIKAPU_MODE=development` turns sign-in off.
 - **Use TLS** in front of Pikapu for any access over an untrusted network, and
-  forward `X-Forwarded-Proto: https` so the session cookie is marked `Secure`.
-- **Protect `data/`.** It holds your subscriptions, articles, and the session
-  signing secret.
+  forward `X-Forwarded-Proto: https` so the session cookie is `Secure` and
+  gets the `__Host-` prefix. Set HSTS at the proxy.
+- **Tell Pikapu about your proxy** with `PIKAPU_TRUSTED_PROXIES`, so sign-in
+  rate limiting sees real client addresses. Without it, every client behind
+  the proxy shares one limit: still safe, but an attacker can then slow down
+  your own sign-in.
+- **Limit exposure** where you can: bind the port to `127.0.0.1` so only the
+  proxy reaches it, or use a VPN.
+- **Protect `data/`.** It holds your subscriptions, articles, account, and
+  sessions.
 
-## Authentication
+## Admin Account
 
-- One shared password; there are no user accounts.
-- Sign-in sets an `HttpOnly`, `SameSite=Lax` cookie valid for 30 days. It is
-  signed with HMAC-SHA256 using a random secret generated on first start and
-  stored in the database.
-- The signature also covers the password, so changing `PIKAPU_PASSWORD` and
-  recreating the container signs everyone out.
-- Failed sign-ins are delayed by half a second. For internet-facing instances,
-  add rate limiting at the reverse proxy.
+- There is exactly one account: a username and a password of 8–128
+  characters. The password is stored as an Argon2id hash.
+- **Creating it.** Either set `PIKAPU_ADMIN_USERNAME` and
+  `PIKAPU_ADMIN_PASSWORD` before the first start, or open Pikapu and enter
+  the one-time setup token from the log
+  (`docker compose logs pikapu | grep setup_token`). A new token is printed on
+  every start until the account exists.
+- **Changing it.** **Settings → Account → Edit** changes the username or
+  password and asks for the current password. A new password signs out every
+  other device.
+- **Forgotten password.** Run `docker exec pikapu pikapu reset-password`. It
+  prints a new random password and signs out every device.
+
+## Sessions
+
+- Sign-in sets an `HttpOnly`, `SameSite=Lax` cookie with a random token. The
+  database stores only its SHA-256 hash, so a copy of `data/` cannot be used
+  to sign in.
+- A session ends after 30 days without use, when you sign out, or when you
+  sign it out from **Settings → Account → Devices**.
+- Failed sign-ins are rate-limited per client address, with waits that grow
+  to 15 minutes, and across all clients. See
+  [Configuration](configuration.md#fixed-limits).
+- State-changing requests that a browser marks as coming from another site
+  are rejected, in addition to the `SameSite` cookie.
+- The web app is served with a Content Security Policy that only runs the
+  app's own scripts.
 
 ## Feed Content
 

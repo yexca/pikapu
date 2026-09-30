@@ -145,3 +145,30 @@ func TestFindFeedLinks(t *testing.T) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
+
+// The app's CSP only allows frames from EmbedOrigins, so every embed the
+// sanitizer keeps must come from one of them.
+func TestEmbedOriginsCoverIframeAllowlist(t *testing.T) {
+	embeds := []string{
+		"https://www.youtube.com/embed/x",
+		"https://www.youtube-nocookie.com/embed/x",
+		"https://youtube.com/embed/x",
+		"https://player.vimeo.com/video/1",
+		"https://player.bilibili.com/player.html?bvid=x",
+	}
+	for _, src := range embeds {
+		if !iframeRe.MatchString(src) {
+			t.Errorf("%s: not allowed by iframeRe; update this test", src)
+			continue
+		}
+		u, _ := url.Parse(src)
+		origin := u.Scheme + "://" + u.Host
+		found := false
+		for _, o := range EmbedOrigins {
+			found = found || o == origin
+		}
+		if !found {
+			t.Errorf("%s is allowed by iframeRe but missing from EmbedOrigins", origin)
+		}
+	}
+}

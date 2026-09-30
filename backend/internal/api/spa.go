@@ -2,12 +2,48 @@ package api
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/base64"
 	"io/fs"
 	"net/http"
 	"path"
+	"regexp"
 	"strings"
 	"time"
+
+	"pikapu/internal/fetcher"
 )
+
+var inlineScriptRe = regexp.MustCompile(`(?s)<script([^>]*)>(.*?)</script>`)
+
+// contentSecurityPolicy allows only the app's own scripts plus the inline
+// scripts in index.html (by hash). Article images and media may come from
+// anywhere; frames only from the sanitizer's embed allowlist.
+func contentSecurityPolicy(index []byte) string {
+	scripts := []string{"'self'"}
+	for _, m := range inlineScriptRe.FindAllSubmatch(index, -1) {
+		if bytes.Contains(m[1], []byte("src=")) {
+			continue
+		}
+		sum := sha256.Sum256(m[2])
+		scripts = append(scripts, "'sha256-"+base64.StdEncoding.EncodeToString(sum[:])+"'")
+	}
+	return strings.Join([]string{
+		"default-src 'self'",
+		"script-src " + strings.Join(scripts, " "),
+		// UI libraries inject style elements at runtime.
+		"style-src 'self' 'unsafe-inline'",
+		"img-src * data: blob:",
+		"media-src * data: blob:",
+		"frame-src " + strings.Join(fetcher.EmbedOrigins, " "),
+		"connect-src 'self'",
+		"font-src 'self' data:",
+		"object-src 'none'",
+		"base-uri 'self'",
+		"form-action 'self'",
+		"frame-ancestors 'self'",
+	}, "; ")
+}
 
 // spaHandler serves the built frontend. Unknown paths fall back to
 // index.html so client-side routes work on reload.
@@ -22,9 +58,11 @@ func spaHandler(web fs.FS) http.Handler {
 	}
 	files := http.FileServerFS(web)
 	started := time.Now()
+	csp := contentSecurityPolicy(index)
 
 	serveIndex := func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Content-Security-Policy", csp)
 		http.ServeContent(w, r, "index.html", started, bytes.NewReader(index))
 	}
 

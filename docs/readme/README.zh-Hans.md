@@ -8,7 +8,7 @@
 安静、简洁的自托管个人 RSS 阅读器。Pikapu 汇集你关心的 RSS、Atom 与 JSON Feed，以清爽的三栏布局呈现。它以单个 Docker 容器运行：Go 后端内嵌 React 前端与 SQLite 数据库，只占用一个端口。
 
 > [!IMPORTANT]
-> Pikapu 仍处于早期阶段。升级前请备份 `data/`；在本机之外开放访问前，请设置 `PIKAPU_PASSWORD`。
+> Pikapu 仍处于早期阶段。升级前请备份 `data/`；暴露到公网前，请在其前面部署启用 TLS 的反向代理。
 
 ## 主要功能
 
@@ -21,7 +21,7 @@
 - 后台定时刷新（ETag / Last-Modified 条件请求，失败自动退避），自动清理过期的已读文章，星标文章始终保留
 - OPML 导入 / 导出
 - 支持英语与简体中文：默认跟随浏览器语言，不支持的语言回退到英语，也可在设置中手动切换
-- 可选的访问密码
+- 管理员账户：用户名 + 密码（Argon2id 哈希存储）登录，可查看并注销已登录设备，失败登录自动限速
 
 ## 快速开始
 
@@ -33,9 +33,15 @@ cd pikapu
 docker compose up -d --build
 ```
 
-打开 <http://localhost:7660>，点击 **+** 添加第一个订阅。
+首次启动时，Pikapu 会在日志中打印一次性的设置令牌：
 
-如需密码保护，将 [`.env.example`](../../.env.example) 复制为 `.env`，设置 `PIKAPU_PASSWORD` 后再次执行 `docker compose up -d`。全部选项见[配置文档](../operations/configuration.md)（英文）。
+```sh
+docker compose logs pikapu | grep setup_token
+```
+
+打开 <http://localhost:7660>，输入令牌并创建管理员账户，然后点击 **+** 添加第一个订阅。
+
+如果不想用令牌，也可以在首次启动前将 [`.env.example`](../../.env.example) 复制为 `.env`，设置 `PIKAPU_ADMIN_USERNAME` 和 `PIKAPU_ADMIN_PASSWORD`，账户会自动创建。全部选项见[配置文档](../operations/configuration.md)（英文）。
 
 默认端口映射监听所有网卡。若不希望局域网访问，请绑定到 `127.0.0.1`、使用带 TLS 的反向代理或可信 VPN，详见[安全文档](../operations/security.md)。
 
@@ -45,7 +51,7 @@ docker compose up -d --build
 | --- | --- | --- | --- |
 | `./data` | `/data` | SQLite 数据库（`pikapu.db` 及 `-wal` / `-shm` 文件） | 是 |
 
-请勿提交 `data/` 或 `.env`，其中包含订阅、阅读记录和会话密钥。
+请勿提交 `data/` 或 `.env`，其中包含订阅、阅读记录、账户和会话。
 
 ## 文档
 
