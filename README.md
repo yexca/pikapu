@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/pikapu-icon.svg" width="112" height="112" alt="Pikapu logo">
+  <img src="docs/assets/pikapu-icon.png" width="112" height="112" alt="Pikapu logo">
 </p>
 
 <h1 align="center">Pikapu</h1>

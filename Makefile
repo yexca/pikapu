@@ -102,17 +102,11 @@ frontend-build: ## Build the frontend locally into frontend/dist
 	cd frontend && $(NPM) run build
 
 # The PNG icons are committed; rerun this only when the logo changes.
-ICON_SVG := docs/assets/pikapu-icon.svg
-ICON_MASKABLE_SVG := docs/assets/pikapu-icon-maskable.svg
+ICON_PNG := docs/assets/pikapu-icon.png
+ICON_MASKABLE_PNG := docs/assets/pikapu-icon-maskable.png
 .PHONY: icons
 icons: ## Render the app icons in frontend/public from docs/assets (container; needs network)
-	$(DOCKER) run --rm -v "$(CURDIR):/src" -w /src alpine:3.22 sh -c '\
-		apk add --no-cache -q rsvg-convert oxipng && \
-		rsvg-convert -w 192 -h 192 -o frontend/public/icon-192.png $(ICON_SVG) && \
-		rsvg-convert -w 512 -h 512 -o frontend/public/icon-512.png $(ICON_SVG) && \
-		rsvg-convert -w 512 -h 512 -o frontend/public/icon-maskable-512.png $(ICON_MASKABLE_SVG) && \
-		rsvg-convert -w 180 -h 180 -o frontend/public/apple-touch-icon.png $(ICON_MASKABLE_SVG) && \
-		oxipng -q -o 4 --strip safe frontend/public/*.png'
+	$(DOCKER) run --rm -v "$(CURDIR):/src" -w /src alpine:3.22 sh -c '		apk add --no-cache -q imagemagick oxipng && 		magick $(ICON_PNG) -filter Lanczos -resize 32x32 frontend/public/favicon-32.png && 		magick $(ICON_PNG) -filter Lanczos -resize 192x192 frontend/public/icon-192.png && 		magick $(ICON_PNG) -filter Lanczos -resize 512x512 frontend/public/icon-512.png && 		magick $(ICON_MASKABLE_PNG) -filter Lanczos -resize 512x512 frontend/public/icon-maskable-512.png && 		magick $(ICON_MASKABLE_PNG) -filter Lanczos -resize 180x180 frontend/public/apple-touch-icon.png && 		oxipng -q -o 4 --strip safe docs/assets/*.png frontend/public/*.png'
 
 # ---------------------------------------------------------------------------
 # Docker runtime

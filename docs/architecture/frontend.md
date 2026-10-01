@@ -93,11 +93,13 @@ standalone`). There is no service worker and no offline cache: the reader
 always talks to the server, and the backend serves `.webmanifest` files as
 `application/manifest+json`.
 
-- Icons: `favicon.svg`, `icon-192.png`, `icon-512.png`,
+- Icons: `favicon-32.png`, `icon-192.png`, `icon-512.png`,
   `icon-maskable-512.png` (Android adaptive icons), and `apple-touch-icon.png`
-  (iOS). The PNGs are committed; `make icons` renders them from
-  `docs/assets/pikapu-icon.svg` and `pikapu-icon-maskable.svg` in a
-  container.
+  (iOS). The PNGs are committed; `make icons` resizes them in a container
+  from the 512 px masters `docs/assets/pikapu-icon.png` (rounded, with
+  transparent corners) and `pikapu-icon-maskable.png` (full bleed, the face
+  inside the central safe zone). The `Logo` component shows `icon-192.png`,
+  so the in-app logo always matches the installed icon.
 - `ThemeProvider` rewrites `<meta name="theme-color">` to match the resolved
   theme, so an explicit Light or Dark choice also colors the browser toolbar
   and the installed app's title bar.
@@ -106,6 +108,23 @@ always talks to the server, and the backend serves `.webmanifest` files as
 - `index.html` sets `viewport-fit=cover`, so bottom-anchored scroll areas and
   the sidebar footer pad by `env(safe-area-inset-bottom)` to stay clear of the
   iPhone home indicator.
+
+## Mascot
+
+The mascot is a messenger mage who delivers feeds; the app icon is her
+chibi portrait. `components/mascot.tsx` shows one of four transparent WebP
+poses from `src/assets/mascot/`:
+
+| Pose | Where |
+| --- | --- |
+| `welcome` | Sign-in and setup card |
+| `reading` | Reader pane with no article open |
+| `caught-up` | Entry list with no unread articles |
+| `searching` | Search with no results |
+
+The images are decorative (`alt=""`); the text next to them carries the
+meaning. Keep new poses in the same style, around 440 px tall, and under
+about 60 KB each.
 
 ## Styling
 

@@ -1,2 +1,2 @@
-No unreleased changes are recorded yet. Changes through v0.1.0 are summarized
-in [v0.1.0](v0.1.0.md).
+New app icon and a mascot, a messenger mage, on the sign-in page, the empty
+reader pane, the "all caught up" list, and empty search results.

@@ -7,13 +7,13 @@ import {
   MoreHorizontalIcon,
   RefreshCwIcon,
   SearchIcon,
-  SearchXIcon,
   StarIcon,
   XIcon,
 } from "lucide-react"
 
 import { FeedMenu } from "@/components/app-sidebar"
 import { FeedIcon } from "@/components/feed-icon"
+import { Mascot, type MascotPose } from "@/components/mascot"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -439,9 +439,17 @@ export function ListEmpty({
   query: string
 }) {
   const { t } = useTranslation()
-  const content = {
+  const contents: Record<
+    EntryListProps["emptyKind"],
+    {
+      icon?: React.ReactNode
+      mascot?: MascotPose
+      title: string
+      description: string
+    }
+  > = {
     unread: {
-      icon: <CheckCheckIcon />,
+      mascot: "caught-up",
       title: t("list.emptyUnreadTitle"),
       description: t("list.emptyUnreadDescription"),
     },
@@ -451,7 +459,7 @@ export function ListEmpty({
       description: t("list.emptyStarredDescription"),
     },
     search: {
-      icon: <SearchXIcon />,
+      mascot: "searching",
       title: t("list.emptySearchTitle"),
       description: t("list.emptySearchDescription", { query: query.trim() }),
     },
@@ -460,12 +468,19 @@ export function ListEmpty({
       title: t("list.emptyTitle"),
       description: t("list.emptyDescription"),
     },
-  }[kind]
+  }
+  const content = contents[kind]
 
   return (
     <Empty className="h-full min-h-72">
       <EmptyHeader>
-        <EmptyMedia variant="icon">{content.icon}</EmptyMedia>
+        {content.mascot ? (
+          <EmptyMedia>
+            <Mascot pose={content.mascot} className="h-36" />
+          </EmptyMedia>
+        ) : (
+          <EmptyMedia variant="icon">{content.icon}</EmptyMedia>
+        )}
         <EmptyTitle>{content.title}</EmptyTitle>
         <EmptyDescription>{content.description}</EmptyDescription>
       </EmptyHeader>

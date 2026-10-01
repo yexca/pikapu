@@ -15,7 +15,7 @@ import {
 } from "lucide-react"
 
 import { FeedIcon } from "@/components/feed-icon"
-import { Logo } from "@/components/logo"
+import { Mascot } from "@/components/mascot"
 import { Button } from "@/components/ui/button"
 import { Kbd } from "@/components/ui/kbd"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -288,7 +288,7 @@ function ReaderEmpty() {
   const { t } = useTranslation()
   return (
     <div className="flex h-full flex-col items-center justify-center gap-5 p-8 text-center">
-      <Logo className="size-12 opacity-90 grayscale-[0.2]" />
+      <Mascot pose="reading" className="h-44" />
       <div>
         <p className="text-sm font-medium">{t("reader.emptyTitle")}</p>
         <p className="mt-1 text-xs text-muted-foreground">

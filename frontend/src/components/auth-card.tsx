@@ -1,4 +1,4 @@
-import { Logo } from "@/components/logo"
+import { Mascot } from "@/components/mascot"
 
 /** The centered card shared by the sign-in and setup pages. */
 export function AuthCard({
@@ -20,7 +20,7 @@ export function AuthCard({
         className="w-full max-w-xs rounded-2xl border bg-background p-6 shadow-sm"
       >
         <div className="flex flex-col items-center gap-3 text-center">
-          <Logo className="size-11" />
+          <Mascot pose="welcome" className="-mt-2 h-36" />
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Pikapu</h1>
             <p className="text-xs text-muted-foreground">{subtitle}</p>
