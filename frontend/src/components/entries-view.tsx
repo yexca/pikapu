@@ -237,11 +237,12 @@ export function EntriesView() {
     Escape: () => selectedRef.current != null && close(),
   })
 
+  // Nothing is "caught up" before the first subscription.
   const emptyKind = debouncedQuery.trim()
     ? "search"
     : view.kind === "starred"
       ? "starred"
-      : prefs.unreadOnly
+      : prefs.unreadOnly && feeds?.length !== 0
         ? "unread"
         : "none"
 

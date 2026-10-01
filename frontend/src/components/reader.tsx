@@ -240,9 +240,12 @@ export function Reader({
           {detail.isPending ? (
             <ContentSkeleton />
           ) : detail.isError ? (
-            <p className="text-sm text-destructive">
-              {t("reader.loadFailed", { reason: errorMessage(detail.error) })}
-            </p>
+            <div className="flex flex-col items-center gap-4 py-6 text-center">
+              <Mascot pose="oops" className="h-32" />
+              <p className="text-sm text-destructive">
+                {t("reader.loadFailed", { reason: errorMessage(detail.error) })}
+              </p>
+            </div>
           ) : content ? (
             <div
               className={cn(
@@ -257,14 +260,23 @@ export function Reader({
             </p>
           )}
 
-          {entry.url && (
-            <div className="mt-14 flex justify-center">
-              <Button variant="outline" asChild>
-                <a href={entry.url} target="_blank" rel="noreferrer">
-                  {t("reader.readOriginal")}
-                  <ArrowUpRightIcon />
-                </a>
-              </Button>
+          {/* End of the article: the way out to the site, and the mascot
+              settling down with the letter she delivered. */}
+          {!detail.isPending && (
+            <div className="mt-14 flex items-end justify-between gap-4 border-t pt-6">
+              {entry.url ? (
+                <Button variant="outline" asChild>
+                  <a href={entry.url} target="_blank" rel="noreferrer">
+                    {t("reader.readOriginal")}
+                    <ArrowUpRightIcon />
+                  </a>
+                </Button>
+              ) : (
+                <span />
+              )}
+              {!detail.isError && (
+                <Mascot pose="reading" className="-mb-4 h-24 sm:h-28" />
+              )}
             </div>
           )}
         </article>
@@ -288,7 +300,8 @@ function ReaderEmpty() {
   const { t } = useTranslation()
   return (
     <div className="flex h-full flex-col items-center justify-center gap-5 p-8 text-center">
-      <Mascot pose="reading" className="h-44" />
+      {/* Only shown beside the classic list, so she points at it. */}
+      <Mascot pose="pointing" className="h-44" />
       <div>
         <p className="text-sm font-medium">{t("reader.emptyTitle")}</p>
         <p className="mt-1 text-xs text-muted-foreground">

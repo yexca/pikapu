@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next"
 import {
   CheckCheckIcon,
   ExternalLinkIcon,
-  InboxIcon,
   MoreHorizontalIcon,
   SearchIcon,
   StarIcon,
@@ -410,12 +409,7 @@ export function ListEmpty({
   const { t } = useTranslation()
   const contents: Record<
     EntryListProps["emptyKind"],
-    {
-      icon?: React.ReactNode
-      mascot?: MascotPose
-      title: string
-      description: string
-    }
+    { mascot: MascotPose; title: string; description: string }
   > = {
     unread: {
       mascot: "caught-up",
@@ -423,7 +417,7 @@ export function ListEmpty({
       description: t("list.emptyUnreadDescription"),
     },
     starred: {
-      icon: <StarIcon />,
+      mascot: "starred",
       title: t("list.emptyStarredTitle"),
       description: t("list.emptyStarredDescription"),
     },
@@ -433,7 +427,7 @@ export function ListEmpty({
       description: t("list.emptySearchDescription", { query: query.trim() }),
     },
     none: {
-      icon: <InboxIcon />,
+      mascot: "waiting",
       title: t("list.emptyTitle"),
       description: t("list.emptyDescription"),
     },
@@ -443,13 +437,9 @@ export function ListEmpty({
   return (
     <Empty className="h-full min-h-72">
       <EmptyHeader>
-        {content.mascot ? (
-          <EmptyMedia>
-            <Mascot pose={content.mascot} className="h-36" />
-          </EmptyMedia>
-        ) : (
-          <EmptyMedia variant="icon">{content.icon}</EmptyMedia>
-        )}
+        <EmptyMedia>
+          <Mascot pose={content.mascot} className="h-36" />
+        </EmptyMedia>
         <EmptyTitle>{content.title}</EmptyTitle>
         <EmptyDescription>{content.description}</EmptyDescription>
       </EmptyHeader>

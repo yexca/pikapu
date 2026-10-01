@@ -113,15 +113,19 @@ always talks to the server, and the backend serves `.webmanifest` files as
 ## Mascot
 
 The mascot is a messenger mage who delivers feeds; the app icon is her
-chibi portrait. `components/mascot.tsx` shows one of four transparent WebP
+chibi portrait. `components/mascot.tsx` shows one of eight transparent WebP
 poses from `src/assets/mascot/`:
 
 | Pose | Where |
 | --- | --- |
 | `welcome` | Sign-in and setup card |
-| `reading` | Reader pane with no article open |
+| `pointing` | Classic reader pane with no article open; she points at the list |
+| `reading` | End of an open article, beside **Read original** |
 | `caught-up` | Entry list with no unread articles |
 | `searching` | Search with no results |
+| `starred` | Starred view with no starred articles |
+| `waiting` | Entry list with no articles yet, including before the first feed |
+| `oops` | The app or an article failed to load |
 
 The images are decorative (`alt=""`); the text next to them carries the
 meaning. Keep new poses in the same style, around 440 px tall, and under

@@ -10,3 +10,9 @@ footer and the list header, and search, Unread / All, Mark all as read, and
 the feed menu sit in one toolbar below it in both layouts. The sidebar's
 separate Refresh all button is gone; Refresh in the header refreshes the open
 feed, or all feeds from other views.
+
+The mascot appears in more places, with four new poses: pointing at the list
+in the empty classic reader, settling down with her letter at the end of each
+article, hugging a starred letter when nothing is starred, waiting by an empty
+satchel before any articles arrive, and apologizing when the app or an
+article fails to load.

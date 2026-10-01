@@ -8,6 +8,7 @@ import { DialogsProvider } from "@/components/dialogs/dialogs-provider"
 import { EntriesView } from "@/components/entries-view"
 import { LoginPage } from "@/components/login-page"
 import { Logo } from "@/components/logo"
+import { Mascot } from "@/components/mascot"
 import { SetupPage } from "@/components/setup-page"
 import { Button } from "@/components/ui/button"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -44,7 +45,7 @@ export default function App() {
   if (auth.isError) {
     return (
       <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center">
-        <Logo className="size-10 grayscale" />
+        <Mascot pose="oops" className="h-36" />
         <div>
           <p className="text-sm font-medium">{t("app.loadFailed")}</p>
           <p className="mt-1 text-sm text-muted-foreground">
