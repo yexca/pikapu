@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import {
   CheckCheckIcon,
   Columns3Icon,
+  ExternalLinkIcon,
   InboxIcon,
   MoreHorizontalIcon,
   RefreshCwIcon,
@@ -52,6 +53,7 @@ export interface EntryListProps {
   feedsById: Map<number, Feed>
   selectedId: number | null
   onSelect: (entry: Entry) => void
+  onOpenOriginal?: (entry: Entry) => void
   query: string
   onQueryChange: (q: string) => void
   searchRef: React.RefObject<HTMLInputElement | null>
@@ -117,6 +119,7 @@ export function EntryList(props: EntryListProps) {
                 selected={e.id === selectedId}
                 showFeed={props.showFeed}
                 onSelect={props.onSelect}
+                onOpenOriginal={props.onOpenOriginal}
               />
             ))}
           </ul>
@@ -334,12 +337,14 @@ const EntryRow = memo(function EntryRow({
   selected,
   showFeed,
   onSelect,
+  onOpenOriginal,
 }: {
   entry: Entry
   feed?: Feed
   selected: boolean
   showFeed: boolean
   onSelect: (entry: Entry) => void
+  onOpenOriginal?: (entry: Entry) => void
 }) {
   // Also re-renders this memoized row when the language changes.
   const { t } = useTranslation()
@@ -348,7 +353,7 @@ const EntryRow = memo(function EntryRow({
     entry.summary && !entry.summary.startsWith(entry.title) ? entry.summary : ""
 
   return (
-    <li>
+    <li className="group relative">
       <button
         type="button"
         data-entry-id={entry.id}
@@ -380,6 +385,8 @@ const EntryRow = memo(function EntryRow({
               {!entry.is_read && (
                 <span className="size-2 rounded-full bg-brand" />
               )}
+              {/* Room for the open-original link laid over the row. */}
+              {entry.url && <span className="w-5" />}
             </span>
           </div>
           <h3
@@ -412,6 +419,30 @@ const EntryRow = memo(function EntryRow({
           />
         )}
       </button>
+      {/* A sibling of the row button: links can't nest inside buttons. */}
+      {entry.url && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon-xs"
+              variant="ghost"
+              asChild
+              className="absolute top-2 right-3 text-muted-foreground opacity-0 group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100"
+            >
+              <a
+                href={entry.url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={t("list.openOriginal")}
+                onClick={() => onOpenOriginal?.(entry)}
+              >
+                <ExternalLinkIcon />
+              </a>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{t("list.openOriginal")}</TooltipContent>
+        </Tooltip>
+      )}
     </li>
   )
 })

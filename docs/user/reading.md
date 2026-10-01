@@ -16,6 +16,11 @@ On wide screens the classic layout shows three panes:
 | Article list | Articles in the selected view, newest first |
 | Reader | The selected article |
 
+Hover an article in the list (on touch screens it is always shown) and use
+the ↗ button at its top right to open the original page in a new browser tab
+without selecting it. With **Mark articles as read when opened** on, this also
+marks the article as read.
+
 Below 1024 px the list and the reader share one column: selecting an article
 opens the reader, and **Back** returns to the list. Below 768 px the sidebar
 becomes a drawer opened with the sidebar button.

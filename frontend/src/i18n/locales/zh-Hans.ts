@@ -75,6 +75,7 @@ const zhHans: Messages = {
     refreshHint: "刷新 (R)",
     markAllRead: "全部标为已读",
     markAllReadHint: "全部标为已读 (Shift+A)",
+    openOriginal: "在新标签页打开原文",
     switchToHub: "切换到消息中心布局",
     switchToClassic: "切换到经典布局",
     search: "搜索文章",

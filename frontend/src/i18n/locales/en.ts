@@ -74,6 +74,7 @@ const en = {
     refreshHint: "Refresh (R)",
     markAllRead: "Mark all as read",
     markAllReadHint: "Mark all as read (Shift+A)",
+    openOriginal: "Open original in a new tab",
     switchToHub: "Switch to hub layout",
     switchToClassic: "Switch to classic layout",
     search: "Search articles",

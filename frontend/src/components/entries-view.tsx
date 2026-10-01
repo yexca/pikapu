@@ -252,6 +252,11 @@ export function EntriesView() {
     feedsById,
     selectedId,
     onSelect: (e) => select(e, true),
+    onOpenOriginal: (e) => {
+      if (prefs.autoMarkRead && !e.is_read) {
+        updateEntry.mutate({ id: e.id, patch: { is_read: true } })
+      }
+    },
     query,
     onQueryChange: setQuery,
     searchRef,
