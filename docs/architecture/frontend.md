@@ -9,9 +9,10 @@ Query, React Router, and i18next. Source in `frontend/src`.
 | --- | --- |
 | `main.tsx` | Providers: theme, locale sync, query client, tooltips, router, toasts |
 | `App.tsx` | Auth gate (setup page, sign-in page, or the app), app shell (sidebar + routes), refresh watcher |
-| `components/app-sidebar.tsx` | Navigation, categories, feeds, footer actions |
+| `components/app-header.tsx` | Top bar shared by both layouts: view title, last update, refresh, layout switch, theme, settings |
+| `components/app-sidebar.tsx` | Navigation, categories, feeds |
 | `components/entries-view.tsx` | Orchestrates the list and the reader for the current view in either layout: selection, keyboard shortcuts, auto mark-as-read |
-| `components/entry-list.tsx` | Classic list; the list header, search, and empty states shared with the hub |
+| `components/entry-list.tsx` | Classic list; the list toolbar (search, Unread/All, view actions) and empty states shared with the hub |
 | `components/hub-view.tsx` | Hub layout stream: "For you" picks and updates grouped by day and feed |
 | `components/reader.tsx` | Article toolbar and rendering |
 | `components/dialogs/` | Add/edit feed, category, filters, settings, shortcuts, confirm dialogs, exposed through `useDialogs()` |
@@ -105,9 +106,9 @@ always talks to the server, and the backend serves `.webmanifest` files as
   and the installed app's title bar.
 - `useUnreadBadge` (in `App.tsx`) puts the unread count in `document.title`
   and on the app icon through the Badging API where supported.
-- `index.html` sets `viewport-fit=cover`, so bottom-anchored scroll areas and
-  the sidebar footer pad by `env(safe-area-inset-bottom)` to stay clear of the
-  iPhone home indicator.
+- `index.html` sets `viewport-fit=cover`, so bottom-anchored scroll areas,
+  including the sidebar, pad by `env(safe-area-inset-bottom)` to stay clear of
+  the iPhone home indicator.
 
 ## Mascot
 

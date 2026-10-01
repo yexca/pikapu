@@ -10,36 +10,28 @@ import {
   FolderPlusIcon,
   InboxIcon,
   ListFilterIcon,
-  MonitorIcon,
-  MoonIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
   RefreshCwIcon,
-  Settings2Icon,
   StarIcon,
-  SunIcon,
   Trash2Icon,
 } from "lucide-react"
 
 import { useDialogs } from "@/components/dialogs/dialogs-provider"
 import { FeedIcon } from "@/components/feed-icon"
 import { Logo } from "@/components/logo"
-import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupAction,
   SidebarGroupContent,
@@ -58,7 +50,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { useTick } from "@/hooks/use-debounced"
 import { feedErrorMessage } from "@/i18n/errors"
 import { usePrefs } from "@/lib/prefs"
 import {
@@ -68,10 +59,8 @@ import {
   useDeleteFeed,
   useFeeds,
   useMarkAllRead,
-  useRefreshAll,
   useRefreshFeed,
 } from "@/lib/queries"
-import { relativeTime } from "@/lib/time"
 import type { Category, Feed } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { sameView, useView, viewPath, type View } from "@/lib/view"
@@ -124,7 +113,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="px-3 pt-3 pb-1">
+      {/* Matches the height of the app header beside it. */}
+      <SidebarHeader className="h-12 shrink-0 justify-center border-b border-sidebar-border px-3 py-0">
         <div className="flex items-center gap-2 px-1">
           <Logo className="size-6" />
           <span className="text-[15px] font-semibold tracking-tight">
@@ -147,7 +137,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="scroll-thin">
+      <SidebarContent className="scroll-thin pt-1 pb-[env(safe-area-inset-bottom)]">
         <SidebarGroup>
           <SidebarMenu>
             <NavItem
@@ -244,10 +234,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
-      <SidebarFooter className="border-t border-sidebar-border/60 pt-2 pb-[max(--spacing(2),env(safe-area-inset-bottom))]">
-        <FooterBar feeds={feeds} refreshing={!!counters?.refreshing} />
-      </SidebarFooter>
     </Sidebar>
   )
 }
@@ -511,94 +497,5 @@ export function FeedMenu({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  )
-}
-
-function FooterBar({
-  feeds,
-  refreshing,
-}: {
-  feeds: Feed[]
-  refreshing: boolean
-}) {
-  useTick(30_000)
-  const { t } = useTranslation()
-  const dialogs = useDialogs()
-  const refreshAll = useRefreshAll()
-  const { theme, setTheme } = useTheme()
-
-  const lastFetched = feeds.reduce<string | null>(
-    (max, f) =>
-      f.last_fetched_at && (!max || f.last_fetched_at > max)
-        ? f.last_fetched_at
-        : max,
-    null
-  )
-  const busy = refreshing || refreshAll.isPending
-
-  return (
-    <div className="flex items-center gap-0.5">
-      <span className="min-w-0 flex-1 truncate pl-2 text-xs text-muted-foreground">
-        {busy
-          ? t("nav.refreshing")
-          : lastFetched
-            ? t("nav.updated", { time: relativeTime(lastFetched) })
-            : ""}
-      </span>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() => refreshAll.mutate()}
-            aria-label={t("nav.refreshAll")}
-          >
-            <RefreshCwIcon className={cn(busy && "animate-spin")} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">{t("nav.refreshAll")}</TooltipContent>
-      </Tooltip>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button size="icon-sm" variant="ghost" aria-label={t("nav.theme")}>
-            <SunIcon className="dark:hidden" />
-            <MoonIcon className="hidden dark:block" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end" className="w-36">
-          <DropdownMenuRadioGroup
-            value={theme}
-            onValueChange={(v) => setTheme(v as typeof theme)}
-          >
-            <DropdownMenuRadioItem value="light">
-              <SunIcon />
-              {t("theme.light")}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="dark">
-              <MoonIcon />
-              {t("theme.dark")}
-            </DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="system">
-              <MonitorIcon />
-              {t("theme.system")}
-            </DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            size="icon-sm"
-            variant="ghost"
-            onClick={dialogs.settings}
-            aria-label={t("nav.settings")}
-          >
-            <Settings2Icon />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top">{t("nav.settings")}</TooltipContent>
-      </Tooltip>
-    </div>
   )
 }

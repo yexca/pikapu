@@ -1,6 +1,6 @@
 # Settings
 
-Open Settings with the sliders button in the sidebar footer. Settings marked
+Open Settings with the sliders button at the right end of the header. Settings marked
 *browser* are stored in this browser only; settings marked *server* apply to
 the whole instance.
 
@@ -18,7 +18,7 @@ language list. Simplified Chinese variants (`zh`, `zh-CN`, `zh-SG`,
 `zh-Hans`) select Simplified Chinese; English variants select English; any
 other language, including Traditional Chinese, falls back to English.
 
-The theme can also be switched from the sun/moon button in the sidebar footer.
+The theme can also be switched from the sun/moon button in the header.
 
 ## Reading
 

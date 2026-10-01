@@ -3,8 +3,16 @@
 ## Layout
 
 Pikapu has two layouts; choose one in **Settings → Layout**, or switch with
-the layout button at the right end of the list header. The choice is
-remembered in this browser.
+the layout button in the header. The choice is remembered in this browser.
+
+Both layouts share the same controls in the same places:
+
+- The **header** shows the current view and its unread count on the left,
+  and on the right when feeds were last updated, **Refresh**, the layout
+  switch, the theme menu, and **Settings**.
+- The **toolbar** below it holds the search box, the **Unread / All**
+  switch, **Mark all as read**, and, in a single-feed view, the feed's **⋯**
+  menu. In the hub it lines up with the stream.
 
 ### Classic
 
@@ -68,7 +76,7 @@ summary; use **Read original** to open the full article on the site.
 
 ## Mark All as Read
 
-The ✓✓ button in the list header marks every unread article in the current
+The ✓✓ button in the toolbar marks every unread article in the current
 view as read, or only the search results while a search is active. Pikapu
 asks for confirmation except in single-feed views.
 

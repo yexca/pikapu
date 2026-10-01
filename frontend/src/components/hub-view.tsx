@@ -13,7 +13,7 @@ import {
 
 import {
   ListEmpty,
-  ListHeader,
+  ListToolbar,
   type EntryListProps,
 } from "@/components/entry-list"
 import { FeedIcon } from "@/components/feed-icon"
@@ -80,7 +80,7 @@ export function HubView(props: HubViewProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <ListHeader {...props} wide />
+      <ListToolbar {...props} centered />
       <div
         ref={scrollRef}
         className="scroll-thin min-h-0 flex-1 overflow-y-auto overscroll-contain bg-muted/40 pb-[env(safe-area-inset-bottom)]"

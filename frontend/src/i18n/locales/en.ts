@@ -25,7 +25,6 @@ const en = {
     collapse: "Collapse",
     noFeeds: "No feeds yet",
     addFirstFeed: "Add your first feed",
-    refreshAll: "Refresh all feeds",
     refreshing: "Updating…",
     updated: "Updated {{time}}",
     theme: "Theme",

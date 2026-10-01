@@ -25,7 +25,6 @@ const zhHans: Messages = {
     collapse: "收起",
     noFeeds: "还没有订阅",
     addFirstFeed: "添加第一个订阅",
-    refreshAll: "刷新全部订阅",
     refreshing: "正在更新…",
     updated: "更新于{{time}}",
     theme: "主题",

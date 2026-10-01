@@ -26,17 +26,17 @@ same feed twice is rejected.
 
 ## Editing and Removing Feeds
 
-Use the **⋯** menu on a feed (in the sidebar, or in the list header when the
-feed is open) to refresh it, mark it read, edit its name, URL, or category,
+Use the **⋯** menu on a feed (in the sidebar, or in the toolbar when the feed
+is open) to refresh it, mark it read, edit its name, URL, or category,
 add a [filter](filters.md), visit the website, or unsubscribe. Unsubscribing deletes all of the feed's
 articles, including starred ones, and its filters.
 
 ## Updates
 
 Feeds refresh in the background at the interval set in
-[Settings](settings.md) (30 minutes by default). **Refresh** in the list
-header refreshes the open feed, or all feeds from other views. The sidebar
-footer shows when feeds were last updated.
+[Settings](settings.md) (30 minutes by default). **Refresh** in the header
+refreshes the open feed, or all feeds from other views. The header also shows
+when feeds were last updated.
 
 Pikapu sends conditional requests, so unchanged feeds cost little. A feed that
 fails is retried less often: 2×, 4×, 8×, and at most 16× the interval.

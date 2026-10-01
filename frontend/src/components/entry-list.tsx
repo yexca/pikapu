@@ -2,11 +2,9 @@ import { memo, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import {
   CheckCheckIcon,
-  Columns3Icon,
   ExternalLinkIcon,
   InboxIcon,
   MoreHorizontalIcon,
-  RefreshCwIcon,
   SearchIcon,
   StarIcon,
   XIcon,
@@ -29,7 +27,6 @@ import {
   InputGroupButton,
   InputGroupInput,
 } from "@/components/ui/input-group"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -40,14 +37,11 @@ import {
 } from "@/components/ui/tooltip"
 import { useTick } from "@/hooks/use-debounced"
 import { useLoadMore } from "@/hooks/use-load-more"
-import { usePrefs } from "@/lib/prefs"
 import { relativeTime } from "@/lib/time"
 import type { Entry, Feed } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 export interface EntryListProps {
-  title: string
-  subtitle?: string
   feed?: Feed
   entries: Entry[]
   feedsById: Map<number, Feed>
@@ -59,8 +53,6 @@ export interface EntryListProps {
   searchRef: React.RefObject<HTMLInputElement | null>
   unreadOnly: boolean
   onUnreadOnlyChange?: (v: boolean) => void
-  refreshing: boolean
-  onRefresh: () => void
   onMarkAllRead: () => void
   isLoading: boolean
   hasNextPage: boolean
@@ -100,7 +92,7 @@ export function EntryList(props: EntryListProps) {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <ListHeader {...props} />
+      <ListToolbar {...props} />
       <div
         ref={scrollRef}
         className="scroll-thin min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[env(safe-area-inset-bottom)]"
@@ -141,87 +133,32 @@ export function EntryList(props: EntryListProps) {
 }
 
 /**
- * Title, actions, search, and the Unread/All switch. `wide` lays them out in
- * one row on large screens, for the hub's full-width stream.
+ * Search, the Unread/All switch, and actions on the current view, in the same
+ * order in both layouts. `centered` lines them up with the hub's stream.
  */
-export function ListHeader({
-  title,
-  subtitle,
+export function ListToolbar({
   feed,
   query,
   onQueryChange,
   searchRef,
   unreadOnly,
   onUnreadOnlyChange,
-  refreshing,
-  onRefresh,
   onMarkAllRead,
-  wide = false,
-}: EntryListProps & { wide?: boolean }) {
+  centered = false,
+}: EntryListProps & { centered?: boolean }) {
   const { t } = useTranslation()
   return (
-    <header
-      className={cn(
-        "flex shrink-0 flex-col gap-2.5 border-b px-3 pt-2.5 pb-3",
-        wide && "bg-background sm:px-4 lg:flex-row lg:items-center lg:gap-3"
-      )}
-    >
-      <div className="flex h-9 items-center gap-1 lg:min-w-0 lg:flex-1">
-        <SidebarTrigger className="-ml-0.5 text-muted-foreground" />
-        <div className="min-w-0 flex-1 px-1">
-          <h1 className="truncate text-[15px] leading-tight font-semibold">
-            {title}
-          </h1>
-          {subtitle && (
-            <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
-          )}
-        </div>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              disabled={refreshing}
-              onClick={onRefresh}
-              aria-label={t("list.refresh")}
-            >
-              <RefreshCwIcon className={cn(refreshing && "animate-spin")} />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t("list.refreshHint")}</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              onClick={onMarkAllRead}
-              aria-label={t("list.markAllRead")}
-            >
-              <CheckCheckIcon />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{t("list.markAllReadHint")}</TooltipContent>
-        </Tooltip>
-        {feed && (
-          <FeedMenu feed={feed} active>
-            <Button
-              size="icon-sm"
-              variant="ghost"
-              aria-label={t("feed.options")}
-            >
-              <MoreHorizontalIcon />
-            </Button>
-          </FeedMenu>
+    <div className="h-12 shrink-0 border-b bg-background">
+      <div
+        className={cn(
+          "flex h-full items-center gap-2 px-3",
+          centered && "mx-auto max-w-3xl sm:px-6"
         )}
-        {!wide && <LayoutSwitch />}
-      </div>
-      <div className="flex items-center gap-2">
+      >
         <SearchBox
           value={query}
           onChange={onQueryChange}
           inputRef={searchRef}
-          className={cn(wide && "lg:w-64 lg:flex-none")}
         />
         {onUnreadOnlyChange && (
           <ToggleGroup
@@ -240,33 +177,34 @@ export function ListHeader({
             </ToggleGroupItem>
           </ToggleGroup>
         )}
-        {wide && <LayoutSwitch />}
+        <div className="-mr-1 flex shrink-0 items-center gap-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={onMarkAllRead}
+                aria-label={t("list.markAllRead")}
+              >
+                <CheckCheckIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{t("list.markAllReadHint")}</TooltipContent>
+          </Tooltip>
+          {feed && (
+            <FeedMenu feed={feed} active>
+              <Button
+                size="icon-sm"
+                variant="ghost"
+                aria-label={t("feed.options")}
+              >
+                <MoreHorizontalIcon />
+              </Button>
+            </FeedMenu>
+          )}
+        </div>
       </div>
-    </header>
-  )
-}
-
-/** Switches between the classic and hub layouts; the icon shows the target. */
-function LayoutSwitch() {
-  const { t } = useTranslation()
-  const [prefs, setPrefs] = usePrefs()
-  const hub = prefs.layout === "hub"
-  const label = hub ? t("list.switchToClassic") : t("list.switchToHub")
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          size="icon-sm"
-          variant="ghost"
-          className="shrink-0"
-          onClick={() => setPrefs({ layout: hub ? "classic" : "hub" })}
-          aria-label={label}
-        >
-          {hub ? <Columns3Icon /> : <InboxIcon />}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
+    </div>
   )
 }
 

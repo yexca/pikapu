@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { useTranslation } from "react-i18next"
 
+import { AppHeader } from "@/components/app-header"
 import { useDialogs } from "@/components/dialogs/dialogs-provider"
 import { EntryList, type EntryListProps } from "@/components/entry-list"
 import { HubView } from "@/components/hub-view"
@@ -245,8 +246,6 @@ export function EntriesView() {
         : "none"
 
   const listProps: EntryListProps = {
-    title,
-    subtitle,
     feed: currentFeed,
     entries: hub ? flattenDays(days) : entries,
     feedsById,
@@ -263,8 +262,6 @@ export function EntriesView() {
     unreadOnly: prefs.unreadOnly,
     onUnreadOnlyChange:
       view.kind === "starred" ? undefined : (v) => setPrefs({ unreadOnly: v }),
-    refreshing,
-    onRefresh: refresh,
     onMarkAllRead,
     isLoading: entriesQuery.isPending || (showPicks && picksQuery.isPending),
     hasNextPage: !!hasNextPage,
@@ -283,33 +280,50 @@ export function EntriesView() {
     onToggleStar: toggleStar,
   }
 
+  const header = (
+    <AppHeader
+      title={title}
+      subtitle={subtitle}
+      refreshing={refreshing}
+      onRefresh={refresh}
+      // On narrow screens the classic reader replaces the whole column.
+      className={cn(!hub && selected && "max-lg:hidden")}
+    />
+  )
+
   if (hub) {
     return (
-      <>
-        <HubView {...listProps} picks={picks} days={days} />
+      <div className="flex min-h-0 flex-1 flex-col">
+        {header}
+        <div className="min-h-0 flex-1">
+          <HubView {...listProps} picks={picks} days={days} />
+        </div>
         <ReaderSheet entry={selected} {...readerProps} />
-      </>
+      </div>
     )
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full">
-      <section
-        className={cn(
-          "flex min-h-0 w-full shrink-0 flex-col border-r lg:w-[22rem] xl:w-[26rem]",
-          selected && "max-lg:hidden"
-        )}
-      >
-        <EntryList {...listProps} />
-      </section>
-      <section
-        className={cn(
-          "min-h-0 min-w-0 flex-1 bg-background",
-          !selected && "max-lg:hidden"
-        )}
-      >
-        <Reader entry={selected} {...readerProps} />
-      </section>
+    <div className="flex min-h-0 flex-1 flex-col">
+      {header}
+      <div className="flex min-h-0 w-full flex-1">
+        <section
+          className={cn(
+            "flex min-h-0 w-full shrink-0 flex-col border-r lg:w-[22rem] xl:w-[26rem]",
+            selected && "max-lg:hidden"
+          )}
+        >
+          <EntryList {...listProps} />
+        </section>
+        <section
+          className={cn(
+            "min-h-0 min-w-0 flex-1 bg-background",
+            !selected && "max-lg:hidden"
+          )}
+        >
+          <Reader entry={selected} {...readerProps} />
+        </section>
+      </div>
     </div>
   )
 }
