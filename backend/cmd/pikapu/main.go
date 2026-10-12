@@ -121,7 +121,7 @@ func run(cfg config.Config, log *slog.Logger) error {
 }
 
 // resetPassword sets a random admin password and signs out every session.
-// Run it inside the container: `docker exec pikapu pikapu reset-password`.
+// Run it inside the container: `docker compose exec pikapu pikapu reset-password`.
 func resetPassword(cfg config.Config) int {
 	st, err := store.Open(filepath.Join(cfg.DataDir, "pikapu.db"))
 	if err != nil {

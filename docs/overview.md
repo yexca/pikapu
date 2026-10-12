@@ -10,8 +10,9 @@ to read them.
   everything in one list, and keep track of what is read.
 - Keep reading comfortable on desktop and phone, in light or dark mode, in
   English or Simplified Chinese.
-- Stay simple to run: a single `docker compose up`, no external services, and
-  data that fits in one directory.
+- Stay simple to run: one Compose file and a single `docker compose up`, with
+  no checkout, build, or external services, and data that fits in one
+  directory.
 - Treat feed content as untrusted: sanitize everything before it reaches the
   browser.
 

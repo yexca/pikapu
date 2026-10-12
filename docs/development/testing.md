@@ -10,7 +10,7 @@ host has installed. The `Makefile` is the canonical entry point.
 | --- | --- | --- |
 | `make test-backend` | `golang:1.26` | `gofmt`, `go vet`, `go test -race ./...` |
 | `make test-frontend` | `node:24-alpine` | `npm ci`, Prettier, ESLint (no warnings), `tsc -b`, production Vite build |
-| `make smoke` | built image | Builds `pikapu:dev` and drives a disposable container over HTTP |
+| `make smoke` | built image | Validates both Compose files, builds `pikapu:dev`, and drives a disposable container over HTTP |
 | `make test` | all of the above | Required before handing off or merging |
 
 `make ci` is an alias for `make test`.
@@ -27,8 +27,9 @@ are never modified. Remove the named volumes with
 | --- | --- |
 | Go code | `make test-backend` |
 | Frontend code or translations | `make test-frontend` |
-| Dockerfile, Compose, API contract, auth, startup | `make smoke` |
-| Anything, before handoff | `make test` |
+| Dockerfile, Compose files, API contract, auth, startup | `make smoke` |
+| Documentation only | None; check that relative links resolve |
+| Any code, image, or Compose change, before handoff | `make test` |
 
 CI runs `make test-backend`, `make test-frontend`, and `make smoke` as
 separate jobs on every pull request and push to `main`; see
@@ -40,8 +41,15 @@ host toolchain do not replace the Docker targets.
 
 ## Smoke Test
 
-`scripts/smoke.mjs` starts the image in production mode without an account on
-`127.0.0.1:17660` (override with `PIKAPU_SMOKE_PORT`) and verifies:
+`make smoke` first runs `make docker-config`, which checks that
+`docker-compose.yml` and `deploy/compose/dev.yml` parse and interpolate.
+
+`scripts/smoke.mjs` then starts the image in production mode without an
+account on `127.0.0.1:17660` (override with `PIKAPU_SMOKE_PORT`). The
+container runs under the isolation `docker-compose.yml` applies: a read-only
+root filesystem, a bounded `/tmp`, `no-new-privileges`, and no capabilities
+except `DAC_OVERRIDE`. A write outside `/data` and `/tmp` therefore fails the
+smoke test. It verifies:
 
 - health check and version
 - SPA serving, the Content Security Policy, and client-route fallback

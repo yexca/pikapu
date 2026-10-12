@@ -19,6 +19,10 @@ See [SECURITY.md](../../SECURITY.md) for the security model and reporting.
   proxy reaches it, or use a VPN.
 - **Protect `data/`.** It holds your subscriptions, articles, account, and
   sessions.
+- **Keep the container isolation** from `docker-compose.yml` when you adapt
+  it: no capabilities beyond `DAC_OVERRIDE`, `no-new-privileges`, and a
+  read-only root filesystem. See
+  [Container Isolation](docker.md#container-isolation).
 
 ## Admin Account
 
@@ -32,8 +36,9 @@ See [SECURITY.md](../../SECURITY.md) for the security model and reporting.
 - **Changing it.** **Settings → Account → Edit** changes the username or
   password and asks for the current password. A new password signs out every
   other device.
-- **Forgotten password.** Run `docker exec pikapu pikapu reset-password`. It
-  prints a new random password and signs out every device.
+- **Forgotten password.** Run
+  `docker compose exec pikapu pikapu reset-password`. It prints a new random
+  password and signs out every device.
 
 ## Sessions
 

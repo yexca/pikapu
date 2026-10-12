@@ -3,6 +3,7 @@
 .env
 .env.*
 data
+deploy
 docs
 scripts
 **/node_modules

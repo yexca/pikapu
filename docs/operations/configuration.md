@@ -3,15 +3,16 @@
 Pikapu is configured by environment variables for process-level options and
 by the Settings dialog for everything else.
 
-`PIKAPU_PASSWORD` from earlier versions is no longer read. Pikapu logs a
-warning if it is still set; create the admin account instead (see
-[Security](security.md#admin-account)).
+`PIKAPU_PASSWORD` is not read. Pikapu logs a warning when it is set; create
+the admin account instead (see [Security](security.md#admin-account)).
 
 ## Environment Variables
 
 These are read by the `pikapu` binary. The Docker image sets the address and
-data directory; Compose passes the others from `.env` (see
-[Docker](docker.md#configure-with-env)).
+data directory; both Compose files pass the others from `.env` (see
+[Docker](docker.md#configure-with-env)). Compose also reads `PIKAPU_IMAGE`
+and `PIKAPU_PORT`, which select the image and the host port and never reach
+the binary.
 
 | Variable | Binary default | Image default | Description |
 | --- | --- | --- | --- |

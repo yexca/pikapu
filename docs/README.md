@@ -54,8 +54,14 @@ Developers: [Agent guide](../AGENTS.md) → [Architecture](architecture/index.md
 ## Documentation Rules
 
 - Documentation is written in English. Translated READMEs live in
-  [`readme/`](readme/).
-- User-visible behavior belongs in `user/`, runtime instructions in
-  `operations/`, system boundaries in `architecture/`, developer workflow in
-  `development/`, and durable design choices in `decisions/`.
-- Record user-facing changes in [history/unreleased.md](history/unreleased.md).
+  [`readme/`](readme/) and follow `README.md`.
+- User-visible behavior belongs in [`user/`](user/getting-started.md).
+- Runtime instructions belong in [`operations/`](operations/docker.md).
+- System boundaries belong in [`architecture/`](architecture/index.md).
+- Developer workflow belongs in [`development/`](development/local-dev.md).
+- Durable design choices belong in [`decisions/`](decisions/index.md).
+- Release notes, pending changes, and per-release upgrade steps belong in
+  [`history/`](history/index.md); record user-facing changes in
+  [history/unreleased.md](history/unreleased.md). Every other page describes
+  only the current system; see the writing rules in the
+  [agent guide](../AGENTS.md#documentation).

@@ -1,0 +1,32 @@
+# Builds the image from this checkout instead of pulling the published one.
+# Run from the repository root, or use `make docker-up`:
+# docker compose --project-directory . -f deploy/compose/dev.yml up -d --build
+# The build context, .env lookup, and ./data mount use that project directory.
+services:
+  pikapu:
+    build:
+      context: .
+    image: pikapu:dev
+    restart: unless-stopped
+    stop_grace_period: 20s
+    # Same isolation as the production stack, so a local build runs under the
+    # restrictions a released image does.
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - DAC_OVERRIDE
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    environment:
+      PIKAPU_MODE: ${PIKAPU_MODE:-production}
+      PIKAPU_ADMIN_USERNAME: ${PIKAPU_ADMIN_USERNAME:-}
+      PIKAPU_ADMIN_PASSWORD: ${PIKAPU_ADMIN_PASSWORD:-}
+      PIKAPU_TRUSTED_PROXIES: ${PIKAPU_TRUSTED_PROXIES:-}
+      TZ: ${TZ:-UTC}
+    ports:
+      - "${PIKAPU_PORT:-7660}:7660"
+    volumes:
+      - ./data:/data

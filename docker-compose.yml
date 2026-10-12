@@ -1,13 +1,21 @@
 services:
   pikapu:
-    build: .
-    image: ${PIKAPU_IMAGE:-pikapu:latest}
-    container_name: pikapu
+    image: ${PIKAPU_IMAGE:-yexca/pikapu:latest}
     restart: unless-stopped
-    ports:
-      - "${PIKAPU_PORT:-7660}:7660"
-    volumes:
-      - ./data:/data
+    # Pikapu gives open requests 10 seconds to finish on shutdown; keep this
+    # longer so Docker does not send SIGKILL first.
+    stop_grace_period: 20s
+    read_only: true
+    cap_drop:
+      - ALL
+    # Lets the container's root user write to a ./data folder that belongs to
+    # another host user.
+    cap_add:
+      - DAC_OVERRIDE
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
     # Optional settings are read from .env beside this file; see .env.example.
     environment:
       PIKAPU_MODE: ${PIKAPU_MODE:-production}
@@ -15,3 +23,7 @@ services:
       PIKAPU_ADMIN_PASSWORD: ${PIKAPU_ADMIN_PASSWORD:-}
       PIKAPU_TRUSTED_PROXIES: ${PIKAPU_TRUSTED_PROXIES:-}
       TZ: ${TZ:-UTC}
+    ports:
+      - "${PIKAPU_PORT:-7660}:7660"
+    volumes:
+      - ./data:/data

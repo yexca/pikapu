@@ -20,6 +20,9 @@ Read the docs that match the area you are changing:
 - Route every user-visible string through i18next and add it to both the
   English and Simplified Chinese catalogs. The backend returns English
   messages with stable error codes, never localized text.
+- Keep the root `docker-compose.yml` runnable from an empty directory with the
+  published image. `deploy/compose/dev.yml` builds a checkout; change both
+  files together.
 - Append new database migrations; never edit a released one.
 - Update the relevant documentation and `docs/history/unreleased.md` when
   behavior changes.

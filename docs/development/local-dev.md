@@ -30,13 +30,24 @@ output:
 PIKAPU_MODE=production make backend-run
 ```
 
-The Docker image and Compose file always default to production mode.
+The Docker image and both Compose files always default to production mode.
 
-To run the production build instead:
+## Run the Image
+
+To run this checkout the way it ships, build it into the production image
+with the development stack:
 
 ```sh
-make docker-up        # builds the image and serves it on :7660
+make docker-up        # builds pikapu:dev and serves it on :7660
+make docker-logs      # setup token and recent log lines
+make docker-down
 ```
+
+These wrap `deploy/compose/dev.yml`. It uses `./data` and the same Compose
+project as the root `docker-compose.yml`, which pulls the published image
+instead of building, so `make docker-up` replaces an instance started from
+that file and reads the same database. See
+[Development Stack](../operations/docker.md#development-stack).
 
 ## Validate
 
@@ -56,6 +67,8 @@ See [Testing](testing.md) for the individual targets.
 | `backend/internal/store` | SQLite queries and migrations |
 | `frontend/src/components` | UI components |
 | `frontend/src/i18n/locales` | Translation catalogs |
+| `docker-compose.yml` | Production stack: runs the published image |
+| `deploy/compose/dev.yml` | Development stack: builds this checkout |
 | `scripts/smoke.mjs` | Container smoke test |
 | `docs/` | Documentation |
 

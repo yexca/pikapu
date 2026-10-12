@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Runtime smoke test for a built image. Starts a disposable container in
-// production mode without an account, creates the admin account with the
+// production mode without an account, under the same isolation as
+// docker-compose.yml, creates the admin account with the
 // setup token from the log, exercises the public HTTP contract, and removes
 // the container. Needs no outbound network access: the only feed it
 // subscribes to uses the reserved .invalid domain, which never resolves.
@@ -268,6 +269,13 @@ async function main() {
   docker([
     "run", "-d", "--rm",
     "--name", container,
+    // The isolation docker-compose.yml applies, so the image is proven to
+    // run under it. /data stays writable as the image's own volume.
+    "--read-only",
+    "--cap-drop", "ALL",
+    "--cap-add", "DAC_OVERRIDE",
+    "--security-opt", "no-new-privileges:true",
+    "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
     "-p", `127.0.0.1:${port}:7660`,
     image,
   ])

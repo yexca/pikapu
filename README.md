@@ -50,12 +50,12 @@ port.
 
 ## Quick Start
 
-Requires Docker with Compose.
+Requires Docker with Compose. No checkout or build is needed: put
+[`docker-compose.yml`](docker-compose.yml) in an empty directory and start the
+published image from there.
 
 ```sh
-git clone <repository-url> pikapu
-cd pikapu
-docker compose up -d --build
+docker compose up -d
 ```
 
 On first start Pikapu prints a one-time setup token to its log:
@@ -68,9 +68,11 @@ Open <http://localhost:7660>, enter the token, and create the admin account.
 Then click **+** and add your first feed.
 
 To create the account without the token instead, copy
-[`.env.example`](.env.example) to `.env`, set `PIKAPU_ADMIN_USERNAME` and
-`PIKAPU_ADMIN_PASSWORD` before the first start. See
-[Configuration](docs/operations/configuration.md) for every option.
+[`.env.example`](.env.example) to `.env` beside the Compose file and set
+`PIKAPU_ADMIN_USERNAME` and `PIKAPU_ADMIN_PASSWORD` before the first start.
+See [Docker](docs/operations/docker.md) for pinning a version, upgrading, and
+reverse proxies, and [Configuration](docs/operations/configuration.md) for
+every option.
 
 The default port mapping listens on all host interfaces. Bind it to
 `127.0.0.1`, put it behind a reverse proxy with TLS, or use a trusted VPN if
@@ -83,8 +85,9 @@ the instance should not be reachable from your network. See
 | --- | --- | --- | --- |
 | `./data` | `/data` | SQLite database (`pikapu.db`, plus `-wal` / `-shm` files) | Yes |
 
-Do not commit `data/` or `.env`; they contain your subscriptions, reading
-history, account, and sessions.
+`./data` is created beside `docker-compose.yml` on first start. Do not commit
+`data/` or `.env`; they contain your subscriptions, reading history, account,
+and sessions.
 
 ## Documentation
 
@@ -101,8 +104,9 @@ history, account, and sessions.
 The `Makefile` is the canonical entry point. Tests run in Docker by default:
 
 ```sh
-make help   # list targets
-make test   # backend + frontend checks in containers, then a smoke test of the image
+make help        # list targets
+make test        # backend + frontend checks in containers, then a smoke test of the image
+make docker-up   # build this checkout and run it on port 7660
 ```
 
 - [Local development](docs/development/local-dev.md)

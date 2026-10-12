@@ -12,6 +12,9 @@ DOCKER_IMAGE ?= pikapu:dev
 GO_IMAGE ?= golang:1.26
 NODE_IMAGE ?= node:24-alpine
 PIKAPU_SMOKE_PORT ?= 17660
+# Keep the build context, .env lookup, ./data mount, and project name rooted
+# here even though the development Compose file lives under deploy/compose/.
+DOCKER_COMPOSE_DEV = $(DOCKER) compose --project-directory "$(CURDIR)" -f deploy/compose/dev.yml
 
 # Git Bash on Windows rewrites arguments that look like POSIX paths (such as
 # `-w /src`) before they reach docker.exe. These variables disable that and
@@ -55,7 +58,7 @@ test-frontend: ## Frontend install, format check, lint, typecheck and build in a
 		sh -c 'npm ci --no-audit --no-fund && npm run format:check && npm run lint && \
 		npm run typecheck && npx vite build --outDir /tmp/dist --emptyOutDir'
 
-smoke: docker-build ## Build the production image and smoke test a disposable container
+smoke: docker-config docker-build ## Check the Compose files, build the production image and smoke test a disposable container
 	$(NODE) scripts/smoke.mjs $(DOCKER_IMAGE)
 
 ci: test ## Alias for the full containerized suite
@@ -112,18 +115,24 @@ icons: ## Render the app icons in frontend/public from docs/assets (container; n
 # Docker runtime
 # ---------------------------------------------------------------------------
 
-.PHONY: docker-build docker-up docker-down docker-status docker-logs
+.PHONY: docker-build docker-config docker-up docker-down docker-status docker-logs
 docker-build: ## Build the production image as $(DOCKER_IMAGE)
 	$(DOCKER_BUILD) $(DOCKER_BUILD_ARGS) -t $(DOCKER_IMAGE) .
 
-docker-up: ## Build and start the Compose stack on port 7660
-	$(DOCKER) compose up -d --build
+docker-config: ## Validate the production and development Compose files
+	$(DOCKER) compose -f docker-compose.yml config --quiet
+	$(DOCKER_COMPOSE_DEV) config --quiet
 
-docker-down: ## Stop the Compose stack (data in ./data is kept)
-	$(DOCKER) compose down
+# These drive the development stack, which builds this checkout. The root
+# docker-compose.yml is the production stack and pulls the published image.
+docker-up: ## Build this checkout and start it on port 7660 (development stack)
+	$(DOCKER_COMPOSE_DEV) up -d --build
 
-docker-status: ## Show Compose service status
-	$(DOCKER) compose ps
+docker-down: ## Stop the development stack (data in ./data is kept)
+	$(DOCKER_COMPOSE_DEV) down
 
-docker-logs: ## Show recent service logs
-	$(DOCKER) compose logs --no-color --tail 200 pikapu
+docker-status: ## Show development stack service status
+	$(DOCKER_COMPOSE_DEV) ps
+
+docker-logs: ## Show recent development stack logs
+	$(DOCKER_COMPOSE_DEV) logs --no-color --tail 200 pikapu

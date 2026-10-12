@@ -30,6 +30,10 @@ the single source:
 
 Record user-facing changes in `docs/history/unreleased.md` as you make them,
 grouped by area (Reading, Subscriptions, Settings, Operations, Development).
+Steps an operator must take when upgrading go at the top as a GitHub alert
+(`> [!IMPORTANT]`), before the areas. The page is the body of the GitHub
+release, so write it for someone who reads nothing else.
+
 When releasing:
 
 1. Set `VERSION` to the new version.
@@ -61,6 +65,11 @@ Pushing a `v*.*.*` tag runs `.github/workflows/release.yml`:
    `latest` (for example `0.1.0`, `0.1`, `latest`), with provenance and an
    SBOM attached.
 5. Publish the GitHub release.
+
+The root `docker-compose.yml` defaults to `yexca/pikapu:latest`, so a
+published release reaches default deployments at their next
+`docker compose pull`. Anything an existing instance needs before or after
+that belongs in the release's upgrade notes.
 
 Repository setup:
 

@@ -13,11 +13,29 @@ docker compose logs --tail 200 pikapu
 - `curl http://localhost:7660/api/healthz` should return
   `{"status":"ok","version":"…"}`.
 
+## The container keeps restarting
+
+The log names the cause.
+
+- `unable to open database file`: Pikapu cannot write to `/data`. Check that
+  `./data` beside `docker-compose.yml` is a directory the container may write
+  to, and keep `cap_add: DAC_OVERRIDE` in the Compose file (see
+  [Container Isolation](docker.md#container-isolation)).
+- `PIKAPU_MODE must be production or development` or an error naming
+  `PIKAPU_TRUSTED_PROXIES` or `PIKAPU_ADMIN_PASSWORD`: fix that value in
+  `.env` and run `docker compose up -d`.
+
+## The image cannot be pulled
+
+`PIKAPU_IMAGE` in `.env` or the shell names an image that is on no registry,
+such as a locally built tag. Remove it to use `yexca/pikapu:latest`, or set a
+published tag (see [Images](docker.md#images)).
+
 ## "Frontend is not built"
 
 The Go binary was built without the frontend bundle. This only happens with
-a manual `go build`; use `docker compose up --build`, or build the frontend
-and copy `frontend/dist` to `backend/web/dist` before building the backend.
+a manual `go build`; use `make docker-up`, or build the frontend and copy
+`frontend/dist` to `backend/web/dist` before building the backend.
 
 ## A feed shows a warning icon
 
@@ -52,8 +70,8 @@ token; sign in with those credentials.
 
 ## Forgot the password
 
-Run `docker exec pikapu pikapu reset-password` and sign in with the printed
-password.
+Run `docker compose exec pikapu pikapu reset-password` and sign in with the
+printed password.
 
 ## "Too many attempts"
 

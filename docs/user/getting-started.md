@@ -2,10 +2,13 @@
 
 ## Install
 
-Pikapu runs with Docker Compose. From a checkout of the repository:
+Pikapu runs with Docker Compose. Put
+[`docker-compose.yml`](../../docker-compose.yml) in an empty directory and
+start it there; it downloads the published image, so nothing needs to be
+built:
 
 ```sh
-docker compose up -d --build
+docker compose up -d
 ```
 
 Open <http://localhost:7660>. On the first visit Pikapu asks for a setup

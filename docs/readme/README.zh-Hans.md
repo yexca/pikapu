@@ -25,12 +25,10 @@
 
 ## 快速开始
 
-需要 Docker 与 Compose。
+需要 Docker 与 Compose。无需克隆仓库或自行构建：将 [`docker-compose.yml`](../../docker-compose.yml) 放入一个空目录，在该目录中启动已发布的镜像即可。
 
 ```sh
-git clone <repository-url> pikapu
-cd pikapu
-docker compose up -d --build
+docker compose up -d
 ```
 
 首次启动时，Pikapu 会在日志中打印一次性的设置令牌：
@@ -41,7 +39,7 @@ docker compose logs pikapu | grep setup_token
 
 打开 <http://localhost:7660>，输入令牌并创建管理员账户，然后点击 **+** 添加第一个订阅。
 
-如果不想用令牌，也可以在首次启动前将 [`.env.example`](../../.env.example) 复制为 `.env`，设置 `PIKAPU_ADMIN_USERNAME` 和 `PIKAPU_ADMIN_PASSWORD`，账户会自动创建。全部选项见[配置文档](../operations/configuration.md)（英文）。
+如果不想用令牌，也可以在首次启动前将 [`.env.example`](../../.env.example) 复制为 Compose 文件旁的 `.env`，设置 `PIKAPU_ADMIN_USERNAME` 和 `PIKAPU_ADMIN_PASSWORD`，账户会自动创建。固定版本、升级与反向代理见 [Docker 文档](../operations/docker.md)，全部选项见[配置文档](../operations/configuration.md)（均为英文）。
 
 默认端口映射监听所有网卡。若不希望局域网访问，请绑定到 `127.0.0.1`、使用带 TLS 的反向代理或可信 VPN，详见[安全文档](../operations/security.md)。
 
@@ -51,15 +49,16 @@ docker compose logs pikapu | grep setup_token
 | --- | --- | --- | --- |
 | `./data` | `/data` | SQLite 数据库（`pikapu.db` 及 `-wal` / `-shm` 文件） | 是 |
 
-请勿提交 `data/` 或 `.env`，其中包含订阅、阅读记录、账户和会话。
+首次启动时会在 `docker-compose.yml` 旁创建 `./data`。请勿提交 `data/` 或 `.env`，其中包含订阅、阅读记录、账户和会话。
 
 ## 文档
 
 完整文档（英文）见[文档索引](../README.md)。开发前请阅读 [CONTRIBUTING.md](../../CONTRIBUTING.md) 与 [AGENTS.md](../../AGENTS.md)。测试默认在 Docker 中运行：
 
 ```sh
-make help   # 查看所有目标
-make test   # 在容器中运行前后端检查，并对镜像做冒烟测试
+make help        # 查看所有目标
+make test        # 在容器中运行前后端检查，并对镜像做冒烟测试
+make docker-up   # 构建当前代码并在 7660 端口运行
 ```
 
 ## 安全
